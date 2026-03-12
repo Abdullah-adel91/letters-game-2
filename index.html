@@ -3,122 +3,117 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>بنك الأسئلة - لعبة الحروف (ملف واحد)</title>
+<title>لعبة الحروف - بسيط</title>
 <style>
-  :root{--accent:#0aa;--muted:#666}
-  body{font-family:Arial, Helvetica, sans-serif;direction:rtl;margin:0;padding:18px;background:#f7f9fb;color:#111}
-  header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  h1{margin:0;font-size:1.2rem}
-  .wrap{max-width:980px;margin:18px auto}
-  .panel{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 6px 18px rgba(10,10,10,0.04)}
-  .letters{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}
-  .letter{padding:10px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer;user-select:none;background:#fff}
-  .letter.active{background:linear-gradient(90deg,#e6fffb,#f0fcff);border-color:var(--accent)}
-  .question{margin-top:12px;font-size:1.15rem;min-height:48px}
-  input[type="text"], textarea, select{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:6px;box-sizing:border-box}
-  button{padding:8px 12px;border-radius:6px;border:0;background:var(--accent);color:#fff;cursor:pointer}
-  .muted{color:var(--muted);font-size:0.95rem}
+  :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
+  body{font-family:Arial, Helvetica, sans-serif;direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111}
+  .wrap{max-width:720px;margin:18px auto}
+  .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(10,10,10,0.05);margin-bottom:12px}
+  .small{font-size:0.95rem;color:var(--muted)}
+  /* زر صغير مستطيل */
+  .picker{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;user-select:none}
+  .dropdown{position:relative;display:inline-block}
+  .letters-list{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.08);max-height:220px;overflow:auto;z-index:50;width:260px}
+  .letters-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+  .letter-btn{padding:8px 10px;border-radius:6px;border:1px solid #eee;background:#fafafa;cursor:pointer}
+  .letter-btn:hover{background:#f0f8f7}
+  .question-area{margin-top:12px;font-size:1.15rem;min-height:48px}
+  .mask{color:var(--muted);margin-top:6px}
+  input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px;box-sizing:border-box}
+  button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+  .muted{color:var(--muted)}
+  hr{border:0;border-top:1px solid #eee;margin:14px 0}
+  /* modal */
+  .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:80}
+  .modal-back.open{display:flex}
+  .modal{background:#fff;border-radius:10px;padding:14px;max-width:900px;width:95%;max-height:86vh;overflow:auto}
+  textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box}
   .row{display:flex;gap:8px}
   .col{flex:1}
-  .admin-grid{display:grid;grid-template-columns:1fr 360px;gap:12px}
-  .q-list{max-height:300px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
+  .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
   .q-item{padding:8px;border-bottom:1px solid #eee}
-  .small{font-size:0.9rem;color:var(--muted)}
   .danger{background:#ff6b6b}
-  pre{white-space:pre-wrap;word-break:break-word}
-  footer{margin-top:12px;text-align:center;color:var(--muted);font-size:0.9rem}
-  @media(max-width:880px){ .admin-grid{grid-template-columns:1fr} }
+  .success{background:#2b8a3e}
+  .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
+  @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>بنك الأسئلة - لعبة الحروف (ملف واحد)</h1>
-    <div class="small">كل شيء يُخزن محلياً في متصفحك (localStorage) — مجاني 100٪</div>
-  </header>
-
-  <!-- لعبة الحروف -->
-  <section class="panel" id="gamePanel">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <strong>اللعبة</strong>
-      <div class="small">اختر حرفاً ثم أجب. الإجابة تُطبع تلقائياً (تحذف ال التعريف).</div>
+  <div class="card" id="uiCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div>
+        <div class="small">اختر حرف</div>
+        <div style="margin-top:8px">
+          <div class="dropdown">
+            <div class="picker" id="openPicker">
+              <span id="selectedLetter">اختر حرفاً</span>
+              <svg style="width:18px;height:18px" viewBox="0 0 24 24"><path fill="#666" d="M7 10l5 5 5-5z"/></svg>
+            </div>
+            <div class="letters-list" id="lettersList" style="display:none">
+              <div class="letters-grid" id="lettersGrid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:left">
+        <div class="small">سهل وبسيط</div>
+        <div class="note">اضغط على المستطيل لفتح قائمة الحروف</div>
+      </div>
     </div>
 
-    <div class="letters" id="letters"></div>
+    <div class="question-area" id="questionArea">لا يوجد سؤال بعد. اختر حرفاً.</div>
+    <div class="mask" id="maskArea"></div>
 
-    <div class="question" id="questionArea">اختر حرفاً لبدء السؤال</div>
-    <div id="mask" class="small muted"></div>
-
-    <input id="answerInput" type="text" placeholder="اكتب إجابتك هنا">
+    <input id="answerInput" type="text" placeholder="اكتب إجابتك هنا (اختياري للتحقق)">
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button id="checkBtn">تحقق</button>
-      <button id="skipBtn" style="background:#888">تخطى</button>
-      <button id="resetLocal" style="background:#444">إعادة ضبط الأسئلة المحلية</button>
+      <button id="newBtn" style="background:#666">سؤال جديد</button>
     </div>
     <div id="result" style="margin-top:10px;font-weight:bold"></div>
-  </section>
+  </div>
 
-  <!-- إدارة الأسئلة -->
-  <section class="panel admin-grid" id="adminPanel">
-    <div>
-      <strong>لوحة الإدارة</strong>
-      <div class="small">أضف سؤالاً واحداً أو مجموعة دفعة واحدة. يتم حساب الحرف الأول تلقائياً.</div>
+  <hr>
 
-      <div style="margin-top:12px">
-        <label>إضافة سؤال واحد</label>
-        <input id="admin_q" placeholder="السؤال (مثال: حيوان بحرف س)">
-        <input id="admin_a" placeholder="الإجابة (مثال: سمك)">
-        <input id="admin_cat" placeholder="الفئة (اختياري)">
-        <select id="admin_diff" style="margin-top:6px">
-          <option value="easy">easy</option>
-          <option value="medium">medium</option>
-          <option value="hard">hard</option>
-        </select>
-        <div style="margin-top:8px;display:flex;gap:8px">
-          <button id="addOneBtn">أضف سؤال</button>
-          <button id="openBatchBtn" style="background:#666">إضافة دفعة</button>
-        </div>
-        <div id="oneMsg" class="small" style="margin-top:8px"></div>
-      </div>
-
-      <hr style="margin:12px 0">
-
-      <div>
-        <label>قائمة الأسئلة الحالية (محلياً)</label>
-        <div class="q-list" id="qList"></div>
-      </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>الإدارة</strong>
+      <div class="small">إضافة مجموعة كبيرة من الأسئلة دفعة واحدة</div>
     </div>
 
-    <!-- نافذة الدفعة داخل العمود الأيمن -->
-    <div>
-      <strong>إضافة دفعة (سطر لكل سؤال)</strong>
-      <div class="small">كل سطر: سؤال || إجابة || فئة || مستوى</div>
-      <textarea id="batchArea" placeholder="مثال: حيوان بحرف س || سمك || حيوان || easy" style="height:220px;margin-top:8px"></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button id="parseBatch">قراءة وتحويل</button>
-        <button id="sendBatch" style="background:#2b8a3e">أرسل الدفعة</button>
+    <div style="margin-top:10px">
+      <div class="note">تنسيق الدفعة: كل سطر سؤال / الإجابة</div>
+      <div class="note">الموقع يقبل حتى 1000 سطر دفعة واحدة</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button id="openBatch" class="success">أضف دفعة أسئلة</button>
+        <button id="exportBtn" style="background:#444">تصدير JSON</button>
+        <button id="clearBtn" class="danger">مسح كل الأسئلة</button>
       </div>
-      <div id="batchPreview" style="margin-top:10px"></div>
-      <div style="margin-top:12px">
-        <label>استيراد / تصدير</label>
-        <div class="small">يمكنك نسخ/لصق JSON لقائمة الأسئلة كاملة</div>
-        <textarea id="importExport" placeholder='استيراد: الصق JSON هنا ثم اضغط "استيراد"'></textarea>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="importBtn">استيراد</button>
-          <button id="exportBtn" style="background:#444">تصدير</button>
-        </div>
-        <div id="impMsg" class="small" style="margin-top:8px"></div>
-      </div>
+      <div class="note" style="margin-top:8px">قائمة الأسئلة المحفوظة محلياً (localStorage)</div>
+      <div class="q-list" id="qList" style="margin-top:8px"></div>
     </div>
-  </section>
+  </div>
+</div>
 
-  <footer class="small">ملاحظة: هذا الملف يعمل محلياً. للحفظ الدائم عبر أجهزة استخدم GitHub/Supabase/Firestore لاحقاً.</footer>
+<!-- Modal batch -->
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <h3>إضافة دفعة أسئلة</h3>
+    <div class="note">ألصق حتى 1000 سطر. كل سطر: سؤال / الإجابة. مثال: حيوان بحرف س / سمك</div>
+    <textarea id="batchText" placeholder="السطر الأول / الإجابة الأولى&#10;السطر الثاني / الإجابة الثانية"></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="parseBtn">قراءة المعاينة</button>
+      <button id="commitBtn" class="success">أضف إلى المخزن</button>
+      <button id="closeModal" style="background:#888">إغلاق</button>
+    </div>
+    <div id="preview" style="margin-top:12px"></div>
+  </div>
 </div>
 
 <script>
-/* ============================
-   دوال التطبيع العربية (مضمنة)
-   ============================ */
+/* ---------------------------
+   دوال التطبيع العربية
+   --------------------------- */
 function removeDiacritics(s){
   return s.replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g,'');
 }
@@ -126,16 +121,12 @@ function normalizeArabic(text){
   if(!text) return '';
   text = String(text).trim().toLowerCase();
   text = removeDiacritics(text);
-  // احتفظ بالحروف العربية والمسافات فقط
   text = text.replace(/[^ء-ي\s]/g,'');
-  // إزالة ال التعريف في البداية
   if(text.startsWith('ال')) text = text.slice(2);
-  // توحيد الألف والهمزات
   text = text.replace(/[أإآ]/g,'ا');
   text = text.replace(/ى/g,'ي');
   text = text.replace(/ؤ/g,'و');
   text = text.replace(/ئ/g,'ي');
-  // تحويل تاء مربوطة إلى هاء (قرار افتراضي)
   text = text.replace(/ة/g,'ه');
   text = text.replace(/\s+/g,' ');
   return text;
@@ -145,127 +136,129 @@ function firstCharAfterNormalize(text){
   return n.length ? n[0] : '';
 }
 
-/* ============================
-   تخزين محلي (localStorage)
-   ============================ */
-const STORAGE_KEY = 'qa_bank_v1';
+/* ---------------------------
+   تخزين محلي
+   --------------------------- */
+const STORAGE_KEY = 'qa_bank_v2';
 function loadQuestions(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return [];
     return JSON.parse(raw);
-  }catch(e){ return []; }
+  }catch(e){ localStorage.removeItem(STORAGE_KEY); return []; }
 }
 function saveQuestions(arr){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
 }
-function resetLocalQuestions(){
-  if(confirm('هل تريد مسح كل الأسئلة المحلية؟')) {
-    localStorage.removeItem(STORAGE_KEY);
-    renderQuestionList();
-    alert('تمت إعادة الضبط محلياً');
-  }
+function clearAll(){
+  if(!confirm('هل تريد مسح كل الأسئلة المحلية؟')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderList();
+  alert('تم المسح');
 }
 
-/* ============================
-   أدوات مساعدة
-   ============================ */
-function genId(){ return 'q'+Math.random().toString(36).slice(2,10); }
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-/* ============================
-   واجهة اللعبة
-   ============================ */
-const letters = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'.split('');
-const lettersDiv = document.getElementById('letters');
+/* ---------------------------
+   واجهة الحروف والاختيار
+   --------------------------- */
+const letters = 'ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي'.split(' ');
+const lettersGrid = document.getElementById('lettersGrid');
+const lettersList = document.getElementById('lettersList');
+const openPicker = document.getElementById('openPicker');
+const selectedLetterEl = document.getElementById('selectedLetter');
 const questionArea = document.getElementById('questionArea');
-const maskEl = document.getElementById('mask');
+const maskArea = document.getElementById('maskArea');
 const answerInput = document.getElementById('answerInput');
 const resultEl = document.getElementById('result');
+let currentLetter = '';
 let currentQuestion = null;
 
-function renderLetters(){
-  lettersDiv.innerHTML = '';
+function buildLetters(){
+  lettersGrid.innerHTML = '';
   letters.forEach(l=>{
-    const d = document.createElement('div');
-    d.className = 'letter';
-    d.textContent = l;
-    d.onclick = ()=>onLetterClick(l,d);
-    lettersDiv.appendChild(d);
+    const b = document.createElement('button');
+    b.className = 'letter-btn';
+    b.textContent = l;
+    b.onclick = ()=>selectLetter(l);
+    lettersGrid.appendChild(b);
   });
 }
-function onLetterClick(letter,el){
-  document.querySelectorAll('.letter').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
-  loadQuestionForLetter(letter);
+openPicker.onclick = (e)=>{
+  e.stopPropagation();
+  lettersList.style.display = lettersList.style.display === 'block' ? 'none' : 'block';
+};
+document.addEventListener('click', ()=>{ lettersList.style.display = 'none'; });
+
+function selectLetter(l){
+  currentLetter = firstCharAfterNormalize(l);
+  selectedLetterEl.textContent = l;
+  lettersList.style.display = 'none';
+  loadRandomForLetter(currentLetter);
 }
-function loadQuestionForLetter(letter){
+
+function loadRandomForLetter(letter){
   const qs = loadQuestions();
-  const normLetter = firstCharAfterNormalize(letter);
-  const pool = qs.filter(q => (q.startsWith||'') === normLetter);
+  const pool = qs.filter(q => (q.startsWith||'') === letter);
   if(pool.length === 0){
-    questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في لوحة الإدارة.';
+    questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
+    maskArea.textContent = '';
     currentQuestion = null;
-    maskEl.textContent = '';
     return;
   }
   const q = pool[Math.floor(Math.random()*pool.length)];
   currentQuestion = q;
   questionArea.textContent = q.question;
-  maskEl.textContent = '_'.repeat(Math.max(3, (q.answer||'').replace(/\s+/g,'').length));
+  maskArea.textContent = '_'.repeat(Math.max(3, (q.answer||'').replace(/\s+/g,'').length));
   resultEl.textContent = '';
   answerInput.value = '';
   answerInput.focus();
 }
+
+/* تحقق من الإجابة */
 document.getElementById('checkBtn').onclick = ()=>{
   if(!currentQuestion){ alert('اختر حرفاً ثم سؤالاً'); return; }
   const user = answerInput.value.trim();
-  if(!user){ alert('اكتب إجابتك'); return; }
+  if(!user){ alert('اكتب إجابتك أو اضغط سؤال جديد'); return; }
   const userFirst = firstCharAfterNormalize(user);
   const expected = currentQuestion.startsWith || '';
-  const correct = userFirst === expected;
-  if(correct){
+  if(userFirst === expected){
     resultEl.style.color = 'green';
-    resultEl.textContent = 'صحيح — إجابتك مقبولة';
+    resultEl.textContent = 'صحيح — الإجابة تبدأ بالحرف المطلوب';
   } else {
     resultEl.style.color = 'crimson';
     resultEl.textContent = `خاطئ — الإجابة المتوقعة تبدأ بحرف "${expected || '?'}" بعد التطبيع`;
   }
 };
-document.getElementById('skipBtn').onclick = ()=>{
-  if(!document.querySelector('.letter.active')){ alert('اختر حرفاً'); return; }
-  const letter = document.querySelector('.letter.active').textContent;
-  loadQuestionForLetter(letter);
+document.getElementById('newBtn').onclick = ()=>{
+  if(!currentLetter){ alert('اختر حرفاً أولاً'); return; }
+  loadRandomForLetter(currentLetter);
 };
-document.getElementById('resetLocal').onclick = resetLocalQuestions;
 
-/* ============================
-   واجهة الإدارة
-   ============================ */
-function renderQuestionList(){
+/* ---------------------------
+   إدارة: عرض القائمة
+   --------------------------- */
+function renderList(){
   const arr = loadQuestions();
   const container = document.getElementById('qList');
   container.innerHTML = '';
-  if(arr.length===0){ container.innerHTML = '<div class="small muted">لا توجد أسئلة محلياً</div>'; return; }
-  arr.forEach((it,idx)=>{
+  if(arr.length === 0){ container.innerHTML = '<div class="small muted">لا توجد أسئلة محلياً</div>'; return; }
+  arr.forEach((it, idx)=>{
     const div = document.createElement('div');
     div.className = 'q-item';
     div.innerHTML = `<div><strong>${idx+1}. ${escapeHtml(it.question)}</strong></div>
-                     <div class="small">الإجابة: ${escapeHtml(it.answer)} — فئة: ${escapeHtml(it.category||'عام')} — مستوى: ${escapeHtml(it.difficulty||'easy')}</div>
-                     <div style="margin-top:6px;display:flex;gap:8px">
-                       <button data-id="${it.id}" class="editBtn" style="background:#0aa">تعديل</button>
-                       <button data-id="${it.id}" class="delBtn" style="background:#ff6b6b">حذف</button>
+                     <div class="small">الإجابة: ${escapeHtml(it.answer)} — يبدأ بـ: ${escapeHtml(it.startsWith||'')}</div>
+                     <div style="margin-top:6px;display:flex;gap:8px;justify-content:flex-start">
+                       <button data-id="${it.id}" class="editBtn" style="background:#0aa;color:#fff;border-radius:6px;padding:6px">تعديل</button>
+                       <button data-id="${it.id}" class="delBtn" style="background:#ff6b6b;color:#fff;border-radius:6px;padding:6px">حذف</button>
                      </div>`;
     container.appendChild(div);
   });
-  // ربط أزرار الحذف والتعديل
   container.querySelectorAll('.delBtn').forEach(b=>{
     b.onclick = (e)=>{
       const id = e.currentTarget.getAttribute('data-id');
       if(!confirm('حذف هذا السؤال؟')) return;
-      const arr = loadQuestions().filter(x=>x.id!==id);
+      const arr = loadQuestions().filter(x=>x.id !== id);
       saveQuestions(arr);
-      renderQuestionList();
+      renderList();
     };
   });
   container.querySelectorAll('.editBtn').forEach(b=>{
@@ -275,125 +268,107 @@ function renderQuestionList(){
       const it = arr.find(x=>x.id===id);
       if(!it) return;
       const newQ = prompt('السؤال:', it.question);
-      if(newQ===null) return;
+      if(newQ === null) return;
       const newA = prompt('الإجابة:', it.answer);
-      if(newA===null) return;
+      if(newA === null) return;
       it.question = newQ.trim();
       it.answer = newA.trim();
       it.startsWith = firstCharAfterNormalize(it.answer);
       saveQuestions(arr);
-      renderQuestionList();
+      renderList();
     };
   });
 }
 
-/* إضافة سؤال واحد */
-document.getElementById('addOneBtn').onclick = ()=>{
-  const q = document.getElementById('admin_q').value.trim();
-  const a = document.getElementById('admin_a').value.trim();
-  const cat = document.getElementById('admin_cat').value.trim() || 'عام';
-  const diff = document.getElementById('admin_diff').value || 'easy';
-  const msg = document.getElementById('oneMsg');
-  msg.textContent = '';
-  if(!q || !a){ msg.style.color='crimson'; msg.textContent = 'أدخل السؤال والإجابة'; return; }
-  const arr = loadQuestions();
-  const item = { id: genId(), question: q, answer: a, category: cat, difficulty: diff, startsWith: firstCharAfterNormalize(a), createdAt: new Date().toISOString() };
-  arr.push(item);
-  saveQuestions(arr);
-  renderQuestionList();
-  msg.style.color='green'; msg.textContent = 'تمت الإضافة محلياً';
-  document.getElementById('admin_q').value=''; document.getElementById('admin_a').value='';
-};
+/* ---------------------------
+   دفعة: نافذة، قراءة، إضافة
+   --------------------------- */
+const modalBack = document.getElementById('modalBack');
+const batchText = document.getElementById('batchText');
+const preview = document.getElementById('preview');
 
-/* دفعة: قراءة وتحويل */
-let batchPreview = [];
-document.getElementById('parseBatch').onclick = ()=>{
-  const raw = document.getElementById('batchArea').value.trim();
-  if(!raw){ alert('أدخل نص الدفعة'); return; }
+document.getElementById('openBatch').onclick = ()=>{ batchText.value=''; preview.innerHTML=''; modalBack.classList.add('open'); };
+document.getElementById('closeModal').onclick = ()=>{ modalBack.classList.remove('open'); };
+
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+document.getElementById('parseBtn').onclick = ()=>{
+  const raw = batchText.value.trim();
+  if(!raw){ alert('ألصق النص أولاً'); return; }
   const lines = raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-  batchPreview = [];
-  lines.forEach(line=>{
-    const parts = line.split('||').map(p=>p.trim());
-    const q = parts[0] || '';
-    const a = parts[1] || '';
-    const cat = parts[2] || 'عام';
-    const diff = parts[3] || 'easy';
-    if(q && a) batchPreview.push({question:q,answer:a,category:cat,difficulty:diff});
-  });
-  renderBatchPreview();
+  if(lines.length > 1000){ if(!confirm(`أدخلت ${lines.length} سطر. الحد الموصى 1000. متابعة؟`)==true) return; }
+  const parsed = [];
+  for(let i=0;i<lines.length;i++){
+    const line = lines[i];
+    // قبول "/" أو " / " كفاصل، أو "||" كخيار بديل
+    let parts = line.split('/');
+    if(parts.length < 2) parts = line.split('||');
+    if(parts.length < 2){
+      // إذا لم يوجد فاصل حاول تقسيم عند آخر مسافة
+      const idx = line.lastIndexOf(' ');
+      if(idx > 0){
+        parts = [line.slice(0, idx), line.slice(idx+1)];
+      } else {
+        parts = [line, ''];
+      }
+    }
+    const q = parts[0].trim();
+    const a = (parts[1] || '').trim();
+    if(!q || !a) {
+      parsed.push({ok:false, raw:line, reason:'مفقود سؤال أو إجابة'});
+    } else {
+      parsed.push({ok:true, question:q, answer:a});
+    }
+  }
+  // عرض معاينة مختصرة
+  preview.innerHTML = parsed.map((p,i)=> p.ok ? `<div class="small">${i+1}. <strong>${escapeHtml(p.question)}</strong> — ${escapeHtml(p.answer)}</div>` : `<div class="small" style="color:crimson">${i+1}. خطأ: ${escapeHtml(p.raw)} — ${escapeHtml(p.reason)}</div>`).join('');
+  preview.dataset.parsed = JSON.stringify(parsed);
 };
-function renderBatchPreview(){
-  const p = document.getElementById('batchPreview');
-  if(batchPreview.length===0){ p.innerHTML = '<div class="small muted">لا توجد عناصر في المعاينة</div>'; return; }
-  p.innerHTML = batchPreview.map((it,i)=>`<div class="small"> ${i+1}. <strong>${escapeHtml(it.question)}</strong> — ${escapeHtml(it.answer)} — ${escapeHtml(it.category)} — ${escapeHtml(it.difficulty)}</div>`).join('');
-}
 
-/* إرسال الدفعة (محلياً) */
-document.getElementById('sendBatch').onclick = ()=>{
-  if(batchPreview.length===0){ alert('لا توجد عناصر لإرسال'); return; }
+document.getElementById('commitBtn').onclick = ()=>{
+  const data = preview.dataset.parsed;
+  if(!data){ alert('اضغط قراءة المعاينة أولاً'); return; }
+  const parsed = JSON.parse(data);
+  const okItems = parsed.filter(p=>p.ok);
+  if(okItems.length === 0){ alert('لا توجد عناصر صحيحة للإضافة'); return; }
   const arr = loadQuestions();
-  const prepared = batchPreview.map(it=>{
-    return { id: genId(), question: it.question.trim(), answer: it.answer.trim(), category: it.category||'عام', difficulty: it.difficulty||'easy', startsWith: firstCharAfterNormalize(it.answer), createdAt: new Date().toISOString() };
+  // إضافة مع حساب startsWith و id
+  okItems.forEach(it=>{
+    const id = 'q'+Math.random().toString(36).slice(2,10);
+    const starts = firstCharAfterNormalize(it.answer);
+    arr.push({ id, question: it.question, answer: it.answer, category: 'عام', difficulty: 'easy', startsWith: starts, createdAt: new Date().toISOString() });
   });
-  prepared.forEach(p=>arr.push(p));
   saveQuestions(arr);
-  batchPreview = [];
-  document.getElementById('batchArea').value = '';
-  renderBatchPreview();
-  renderQuestionList();
-  document.getElementById('impMsg').style.color='green';
-  document.getElementById('impMsg').textContent = `تمت إضافة ${prepared.length} سؤالاً محلياً`;
+  renderList();
+  modalBack.classList.remove('open');
+  alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
 };
 
-/* استيراد وتصدير JSON */
+/* ---------------------------
+   استيراد / تصدير / مسح
+   --------------------------- */
 document.getElementById('exportBtn').onclick = ()=>{
   const arr = loadQuestions();
-  document.getElementById('importExport').value = JSON.stringify(arr, null, 2);
-  document.getElementById('impMsg').style.color='green';
-  document.getElementById('impMsg').textContent = 'تم توليد JSON في الحقل أعلاه. انسخه لحفظ خارجي.';
+  const blob = new Blob([JSON.stringify(arr, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'questions.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 };
-document.getElementById('importBtn').onclick = ()=>{
-  const raw = document.getElementById('importExport').value.trim();
-  if(!raw){ alert('الصق JSON ثم اضغط استيراد'); return; }
-  try{
-    const parsed = JSON.parse(raw);
-    if(!Array.isArray(parsed)){ throw new Error('الملف يجب أن يكون مصفوفة'); }
-    // تأكد من الحقول الأساسية، وحساب startsWith إن لم توجد
-    const prepared = parsed.map(it=>{
-      const q = (it.question||it.q||'').toString().trim();
-      const a = (it.answer||it.a||'').toString().trim();
-      if(!q || !a) throw new Error('كل عنصر يجب أن يحتوي سؤال وإجابة');
-      return {
-        id: it.id || genId(),
-        question: q,
-        answer: a,
-        category: it.category || 'عام',
-        difficulty: it.difficulty || 'easy',
-        startsWith: it.startsWith || firstCharAfterNormalize(a),
-        createdAt: it.createdAt || new Date().toISOString()
-      };
-    });
-    saveQuestions(prepared);
-    renderQuestionList();
-    document.getElementById('impMsg').style.color='green';
-    document.getElementById('impMsg').textContent = `تم استيراد ${prepared.length} سؤالاً محلياً`;
-  }catch(e){
-    document.getElementById('impMsg').style.color='crimson';
-    document.getElementById('impMsg').textContent = 'خطأ في JSON: ' + e.message;
-  }
-};
+document.getElementById('clearBtn').onclick = clearAll;
 
-/* زر فتح الدفعة ينسخ النص إلى الحقل */
-document.getElementById('openBatchBtn').onclick = ()=>{ window.scrollTo({top:document.getElementById('batchArea').offsetTop-20,behavior:'smooth'}); document.getElementById('batchArea').focus(); };
-
-/* زر إعادة ضبط (محلي) */
-document.getElementById('resetLocal').addEventListener('click', ()=>{}); // مرتبط أعلاه
-
-/* تهيئة أولية */
+/* ---------------------------
+   مساعدة أولية وتهيئة
+   --------------------------- */
 (function init(){
-  renderLetters();
-  renderQuestionList();
-  renderBatchPreview();
+  buildLetters();
+  // إصلاح بيانات تالفة
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) JSON.parse(raw); }catch(e){ localStorage.removeItem(STORAGE_KEY); }
+  renderList();
 })();
 </script>
 </body>
