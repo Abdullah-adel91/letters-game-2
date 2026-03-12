@@ -38,13 +38,17 @@
   hr{border:0;border-top:1px solid #eee;margin:14px 0}
   /* Modal */
   .modal-back{
-    position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:12000;
+    position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;
+    z-index:120000; /* increased to ensure above other elements */
     pointer-events:auto;
   }
   .modal-back.open{display:flex}
   .modal{
-    background:#fff;border-radius:10px;padding:14px;max-width:920px;width:95%;max-height:86vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,0.2);
+    background:#fff;border-radius:10px;padding:14px;max-width:920px;width:95%;max-height:86vh;overflow:auto;
+    box-shadow:0 12px 40px rgba(0,0,0,0.2);
     pointer-events:auto;
+    z-index:120001;
+    position:relative;
   }
   textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-family:inherit;resize:vertical}
   .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
@@ -224,7 +228,8 @@ function selectLetter(l){
 }
 function loadRandomForLetter(letter){
   const qs = loadQuestions();
-  const pool = qs.filter(q => (q.startsWith||'') === letter);
+  // تصفية باستخدام الخاصية startsWith المخزنة مع كل سؤال
+  const pool = qs.filter(q => (q.startsWith || '') === letter);
   if(pool.length === 0){
     questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
     maskArea.textContent = '';
@@ -264,14 +269,30 @@ const batchText = document.getElementById('batchText');
 const preview = document.getElementById('preview');
 
 document.getElementById('openBatch').addEventListener('click', ()=>{
-  // Ensure modal is interactive and textarea enabled
+  // افتح المودال
   modalBack.classList.add('open');
   modalBack.setAttribute('aria-hidden','false');
-  batchText.removeAttribute('disabled');
-  batchText.removeAttribute('readonly');
+
+  // تأكد أن المودال و الـbackdrop أعلى العناصر
+  modalBack.style.zIndex = '120000';
+  const modalEl = modalBack.querySelector('.modal');
+  if(modalEl) modalEl.style.zIndex = '120001';
+
+  // تمكين الـtextarea بطريقة مباشرة (avoid removeAttribute quirks)
+  batchText.disabled = false;
+  batchText.readOnly = false;
   batchText.style.pointerEvents = 'auto';
-  // Focus textarea after a short delay
-  setTimeout(()=>{ try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(e){} }, 60);
+  batchText.tabIndex = 0;
+
+  // على بعض المتصفحات (خصوصاً iOS) يحتاج وقت قبل قبول الفوكس
+  setTimeout(()=> {
+    try {
+      // استخدم خيار focus متحفظ لمنع التمرير غير المرغوب
+      if (typeof batchText.focus === 'function') batchText.focus({ preventScroll: true });
+      // وضع المؤشر آخر النص
+      batchText.selectionStart = batchText.selectionEnd = batchText.value.length;
+    } catch(e){}
+  }, 150); // زيادة بسيطة في التأخير لتحسين التوافق على الجوالات
 });
 
 document.getElementById('closeModal').addEventListener('click', ()=>{
@@ -403,8 +424,20 @@ function renderList(){
   // Safety: ensure modal and textarea are interactive
   const mb = document.getElementById('modalBack');
   const bt = document.getElementById('batchText');
-  if(mb) mb.style.pointerEvents = 'auto';
-  if(bt){ bt.style.pointerEvents = 'auto'; bt.removeAttribute('readonly'); bt.removeAttribute('disabled'); }
+  if(mb) { mb.style.pointerEvents = 'auto'; mb.style.zIndex = '120000'; }
+  if(bt){
+    bt.style.pointerEvents = 'auto';
+    bt.readOnly = false;
+    bt.disabled = false;
+    bt.removeAttribute('readonly');
+    bt.removeAttribute('disabled');
+    bt.tabIndex = 0;
+  }
+
+  // Improve touch behavior for mobile devices (passive listener)
+  try{
+    modalBack.addEventListener('touchstart', (e)=>{}, {passive:true});
+  }catch(e){}
 })();
 </script>
 </body>
