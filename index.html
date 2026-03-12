@@ -3,16 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف - مصحح عرض الحروف</title>
+<title>لعبة الحروف - مصحح ظهور الحروف</title>
 <style>
-  /* استخدم خطوط تدعم العربية أولاً */
-  @font-face {
-    font-family: "NotoNaskh";
-    src: local("Noto Naskh Arabic"), local("NotoNaskhArabic");
-  }
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
+  /* استخدم سلسلة خطوط تدعم العربية كافتراضية */
   body{
-    font-family: "NotoNaskh", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Noto Sans Arabic", "Segoe UI", "Tahoma", "Arial", sans-serif;
     direction:rtl;
     margin:0;padding:18px;background:var(--bg);color:#111;
     -webkit-font-smoothing:antialiased;
@@ -24,20 +20,19 @@
   .picker{
     display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;
     cursor:pointer;user-select:none;font-size:16px;
-    font-family: "NotoNaskh", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
   }
   .dropdown{position:relative;display:inline-block}
   .letters-list{
     position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.08);max-height:260px;overflow:auto;z-index:999;width:320px;display:none;
-    font-family: "NotoNaskh", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    box-shadow:0 8px 24px rgba(0,0,0,0.08);max-height:260px;overflow:auto;z-index:9999;width:320px;display:none;
+    -webkit-overflow-scrolling:touch;
   }
   .letters-list.open{display:block}
   .letters-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
   .letter-btn{
     padding:10px 12px;border-radius:6px;border:1px solid #eee;background:#fafafa;cursor:pointer;
-    font-size:20px;min-width:44px;text-align:center;line-height:1;
-    font-family: "NotoNaskh", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-size:20px;min-width:44px;text-align:center;line-height:1;color:#000;
+    font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
     direction:rtl;
   }
   .letter-btn:hover{background:#f0f8f7}
@@ -134,7 +129,7 @@
 </div>
 
 <script>
-/* ======= التطبيع ======= */
+/* التطبيع */
 function removeDiacritics(s){ return s.replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g,''); }
 function normalizeArabic(text){
   if(!text) return '';
@@ -148,12 +143,12 @@ function normalizeArabic(text){
 }
 function firstCharAfterNormalize(text){ const n = normalizeArabic(text); return n.length ? n[0] : ''; }
 
-/* ======= تخزين محلي ======= */
+/* تخزين محلي */
 const STORAGE_KEY = 'qa_bank_v2';
 function loadQuestions(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ localStorage.removeItem(STORAGE_KEY); return []; } }
 function saveQuestions(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
 
-/* ======= عناصر الواجهة ======= */
+/* عناصر الواجهة */
 const letters = 'ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي'.split(' ');
 const lettersGrid = document.getElementById('lettersGrid');
 const lettersList = document.getElementById('lettersList');
@@ -168,7 +163,7 @@ const resultEl = document.getElementById('result');
 let currentLetter = '';
 let currentQuestion = null;
 
-/* بناء شبكة الحروف مع ضمان ظهور الحروف بخط يدعم العربية */
+/* بناء الحروف */
 function buildLetters(){
   const grid = document.getElementById('lettersGrid');
   if(!grid) return;
@@ -177,8 +172,7 @@ function buildLetters(){
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'letter-btn';
-    // استخدم textContent لضمان عرض الحرف كما هو
-    btn.textContent = l;
+    btn.textContent = l; // textContent لضمان عرض الحرف
     btn.setAttribute('aria-label', 'حرف ' + l);
     btn.addEventListener('click', (ev)=>{
       ev.stopPropagation();
@@ -195,7 +189,7 @@ function buildLetters(){
   });
 }
 
-/* فتح/إغلاق القائمة بطريقة آمنة */
+/* فتح/إغلاق القائمة */
 function toggleDropdown(open){
   const list = document.getElementById('lettersList');
   const root = document.getElementById('dropdownRoot');
@@ -217,7 +211,7 @@ function toggleDropdown(open){
   }
 }
 
-/* تعامل مع الضغط على المستطيل */
+/* تعامل مع المستطيل */
 openPicker.addEventListener('click', (e)=>{
   e.stopPropagation();
   const list = document.getElementById('lettersList');
@@ -236,7 +230,7 @@ openPicker.addEventListener('keydown', (e)=>{
   }
 });
 
-/* إغلاق القائمة عند الضغط خارجها أو Escape */
+/* إغلاق عند النقر خارج أو Escape */
 document.addEventListener('click', (e)=>{
   const root = document.getElementById('dropdownRoot');
   if(!root) return;
@@ -254,7 +248,7 @@ function selectLetter(l){
   loadRandomForLetter(currentLetter);
 }
 
-/* تحميل سؤال عشوائي للحرف */
+/* تحميل سؤال عشوائي */
 function loadRandomForLetter(letter){
   const qs = loadQuestions();
   const pool = qs.filter(q => (q.startsWith||'') === letter);
@@ -403,9 +397,8 @@ document.getElementById('clearBtn').addEventListener('click', ()=>{
   renderList();
 });
 
-/* ======= تهيئة أولية ======= */
+/* تهيئة */
 (function init(){
-  // إصلاح بيانات تالفة
   try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) JSON.parse(raw); }catch(e){ localStorage.removeItem(STORAGE_KEY); }
   buildLetters();
   renderList();
