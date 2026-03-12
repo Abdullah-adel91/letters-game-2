@@ -3,47 +3,69 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف - مصحح الدفعة واللصق</title>
+<title>لعبة الحروف - نسخة مصححة</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
-  body{font-family:"Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111}
+  body{
+    font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  }
   .wrap{max-width:920px;margin:18px auto}
   .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(10,10,10,0.05);margin-bottom:12px}
   .small{font-size:0.95rem;color:var(--muted)}
   .picker{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;user-select:none}
   .dropdown{position:relative;display:inline-block}
-  .letters-list{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.08);max-height:260px;overflow:auto;z-index:9999;width:320px;display:none}
+  .letters-list{
+    position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.08);max-height:260px;overflow:auto;z-index:9999;width:320px;display:none;
+    -webkit-overflow-scrolling:touch;
+  }
   .letters-list.open{display:block}
   .letters-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
-  .letter-btn{padding:10px 12px;border-radius:6px;border:1px solid #eee;background:#fafafa;cursor:pointer;font-size:20px;min-width:44px;text-align:center;line-height:1;color:#000}
+  .letter-btn{
+    padding:10px 12px;border-radius:6px;border:1px solid #eee;background:#fafafa;cursor:pointer;
+    font-size:20px;min-width:44px;text-align:center;line-height:1;color:#000;
+    font-family:inherit;direction:rtl;
+  }
   .letter-btn:hover{background:#f0f8f7}
+  .letter-btn:focus{outline:2px solid #bde; outline-offset:2px}
   .question-area{margin-top:12px;font-size:1.15rem;min-height:48px}
   .mask{color:var(--muted);margin-top:6px}
   input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px;box-sizing:border-box}
   button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
   .muted{color:var(--muted)}
   hr{border:0;border-top:1px solid #eee;margin:14px 0}
-  .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:10000}
+  /* Modal */
+  .modal-back{
+    position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:12000;
+    pointer-events:auto;
+  }
   .modal-back.open{display:flex}
-  .modal{background:#fff;border-radius:10px;padding:14px;max-width:920px;width:95%;max-height:86vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,0.2)}
+  .modal{
+    background:#fff;border-radius:10px;padding:14px;max-width:920px;width:95%;max-height:86vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,0.2);
+    pointer-events:auto;
+  }
   textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-family:inherit;resize:vertical}
   .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
   .q-item{padding:8px;border-bottom:1px solid #eee}
   .danger{background:#ff6b6b}
   .success{background:#2b8a3e}
   .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
+  /* Ensure nothing overlays modal or textarea */
+  .overlay-fix{pointer-events:none}
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card">
+  <div class="card" id="uiCard">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
         <div class="small">اختر حرف</div>
         <div style="margin-top:8px">
           <div class="dropdown" id="dropdownRoot" aria-haspopup="true" aria-expanded="false">
-            <div class="picker" id="openPicker" role="button" tabindex="0">
+            <div class="picker" id="openPicker" role="button" aria-label="فتح قائمة الحروف" tabindex="0">
               <span id="selectedLetter">اختر حرفاً</span>
               <svg style="width:18px;height:18px" viewBox="0 0 24 24"><path fill="#666" d="M7 10l5 5 5-5z"/></svg>
             </div>
@@ -53,6 +75,7 @@
           </div>
         </div>
       </div>
+
       <div style="text-align:left;min-width:180px">
         <div class="small">سهل وبسيط</div>
         <div class="note">اضغط على المستطيل لفتح قائمة الحروف ثم اختر حرفاً</div>
@@ -95,7 +118,7 @@
 <div class="modal-back" id="modalBack" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true">
     <h3>إضافة دفعة أسئلة</h3>
-    <div class="note">ألصق حتى 1000 سطر. كل سطر: سؤال / الإجابة. مثال: <em>1. حيوان بحرف س / سمك</em></div>
+    <div class="note">ألصق حتى 1000 سطر. كل سطر: سؤال / الإجابة. مثال: 1. حيوان بحرف س / سمك</div>
     <textarea id="batchText" placeholder="السطر الأول / الإجابة الأولى&#10;السطر الثاني / الإجابة الثانية"></textarea>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button id="parseBtn">قراءة المعاينة</button>
@@ -107,7 +130,7 @@
 </div>
 
 <script>
-/* ======= التطبيع ======= */
+/* ======= دوال التطبيع ======= */
 function removeDiacritics(s){ return s.replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g,''); }
 function normalizeArabic(text){
   if(!text) return '';
@@ -124,7 +147,7 @@ function firstCharAfterNormalize(text){ const n = normalizeArabic(text); return 
 /* ======= تخزين محلي ======= */
 const STORAGE_KEY = 'qa_bank_v2';
 function loadQuestions(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ localStorage.removeItem(STORAGE_KEY); return []; } }
-function saveQuestions(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+function saveQuestions(arr){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }catch(e){} }
 
 /* ======= عناصر الواجهة ======= */
 const letters = 'ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي'.split(' ');
@@ -228,46 +251,38 @@ document.getElementById('checkBtn').addEventListener('click', ()=>{
 document.getElementById('newBtn').addEventListener('click', ()=>{ if(!currentLetter){ alert('اختر حرفاً أولاً'); return; } loadRandomForLetter(currentLetter); });
 
 /* ======= دفعة: تجاهل الأرقام في بداية السطر ======= */
-/*
-  قواعد التجاهل:
-  - يتجاهل بداية السطر إن كانت بصيغة: "1. " أو "1) " أو "1 - " أو "01. " أو "1 " أو "1:" 
-  - يزيل أي أرقام متسلسلة متبوعة بنقطة/قوس/شرطة/نقطتين أو مسافة
-*/
 function stripLeadingNumber(s){
-  // إزالة BOM ومسافات بداية
   s = String(s || '').replace(/^\uFEFF/, '').trim();
-  // نمط الأرقام في البداية
-  // أمثلة: "1. ", "01) ", "12 - ", "3: ", "4 "
   const m = s.match(/^\s*\d+\s*(?:[.)\-:]\s*|\s+)/);
-  if(m){
-    return s.slice(m[0].length).trim();
-  }
+  if(m) return s.slice(m[0].length).trim();
   return s;
 }
 
+/* Modal controls and textarea enabling */
 const modalBack = document.getElementById('modalBack');
 const batchText = document.getElementById('batchText');
 const preview = document.getElementById('preview');
 
 document.getElementById('openBatch').addEventListener('click', ()=>{
-  batchText.value = '';
-  preview.innerHTML = '';
+  // Ensure modal is interactive and textarea enabled
   modalBack.classList.add('open');
   modalBack.setAttribute('aria-hidden','false');
-  // تأكد أن textarea قابلة للكتابة وركز عليها
-  setTimeout(()=>{ batchText.focus(); batchText.scrollTop = 0; }, 60);
+  batchText.removeAttribute('disabled');
+  batchText.removeAttribute('readonly');
+  batchText.style.pointerEvents = 'auto';
+  // Focus textarea after a short delay
+  setTimeout(()=>{ try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(e){} }, 60);
 });
 
-// إغلاق
 document.getElementById('closeModal').addEventListener('click', ()=>{
   modalBack.classList.remove('open');
   modalBack.setAttribute('aria-hidden','true');
 });
 
-// دعم اللصق: لا حاجة لتعديل، لكن نضمن أن النص يبقى
+/* Paste handler: allow paste and keep default behavior */
 batchText.addEventListener('paste', (e)=>{
-  // نترك المتصفح يتعامل مع اللصق، لكن يمكن تنظيف لاحقاً عند القراءة
-  setTimeout(()=>{ /* بعد اللصق */ }, 10);
+  // no-op: allow default paste; focus will remain
+  setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10);
 });
 
 document.getElementById('parseBtn').addEventListener('click', ()=>{
@@ -278,26 +293,19 @@ document.getElementById('parseBtn').addEventListener('click', ()=>{
   const parsed = [];
   for(let i=0;i<lines.length;i++){
     let line = lines[i];
-    // أولاً: إذا السطر يبدأ برقم نزيله
     line = stripLeadingNumber(line);
-    // الآن نفصل السؤال والإجابة: نبحث عن "/" أو "||"
     let parts = line.split('/');
     if(parts.length < 2) parts = line.split('||');
     if(parts.length < 2){
-      // حاول فصل عند آخر " - " أو " : " أو " — "
       let sepIndex = line.lastIndexOf(' - ');
       if(sepIndex === -1) sepIndex = line.lastIndexOf(' — ');
       if(sepIndex === -1) sepIndex = line.lastIndexOf(':');
       if(sepIndex > 0){
         parts = [line.slice(0, sepIndex), line.slice(sepIndex + (line[sepIndex]===':'?1:3))];
       } else {
-        // كحل أخير: افصل عند آخر مسافة (قد يكون خطأ لكن نعطي فرصة)
         const idx = line.lastIndexOf(' ');
-        if(idx > 0){
-          parts = [line.slice(0, idx), line.slice(idx+1)];
-        } else {
-          parts = [line, ''];
-        }
+        if(idx > 0) parts = [line.slice(0, idx), line.slice(idx+1)];
+        else parts = [line, ''];
       }
     }
     const q = (parts[0]||'').trim();
@@ -309,7 +317,6 @@ document.getElementById('parseBtn').addEventListener('click', ()=>{
   preview.dataset.parsed = JSON.stringify(parsed);
 });
 
-// إضافة العناصر الصحيحة للمخزن
 document.getElementById('commitBtn').addEventListener('click', ()=>{
   const data = preview.dataset.parsed;
   if(!data){ alert('اضغط قراءة المعاينة أولاً'); return; }
@@ -329,7 +336,7 @@ document.getElementById('commitBtn').addEventListener('click', ()=>{
   alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
 });
 
-/* ======= استيراد/تصدير/مسح ======= */
+/* استيراد/تصدير ومسح */
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const arr = loadQuestions();
   const blob = new Blob([JSON.stringify(arr, null, 2)], {type:'application/json'});
@@ -342,7 +349,7 @@ document.getElementById('clearBtn').addEventListener('click', ()=>{
   renderList();
 });
 
-/* ======= مساعدة وواجهة القائمة والادارة ======= */
+/* مساعدة واجهة الإدارة */
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function renderList(){
   const arr = loadQuestions();
@@ -388,11 +395,16 @@ function renderList(){
   });
 }
 
-/* ======= تهيئة أولية ======= */
+/* تهيئة أولية وإصلاح بيانات تالفة */
 (function init(){
   try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) JSON.parse(raw); }catch(e){ localStorage.removeItem(STORAGE_KEY); }
   buildLetters();
   renderList();
+  // Safety: ensure modal and textarea are interactive
+  const mb = document.getElementById('modalBack');
+  const bt = document.getElementById('batchText');
+  if(mb) mb.style.pointerEvents = 'auto';
+  if(bt){ bt.style.pointerEvents = 'auto'; bt.removeAttribute('readonly'); bt.removeAttribute('disabled'); }
 })();
 </script>
 </body>
