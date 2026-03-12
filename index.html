@@ -3,13 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف - نسخة مصححة</title>
+<title>لعبة الحروف - نسخة مُحسّنة (fix input)</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
+  html,body{height:100%}
   body{
     font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
     direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111;
     -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    -webkit-touch-callout: default; /* allow text selection on iOS */
   }
   .wrap{max-width:920px;margin:18px auto}
   .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(10,10,10,0.05);margin-bottom:12px}
@@ -39,8 +41,9 @@
   /* Modal */
   .modal-back{
     position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;
-    z-index:120000; /* increased to ensure above other elements */
+    z-index:120000; /* high */
     pointer-events:auto;
+    -webkit-overflow-scrolling:touch;
   }
   .modal-back.open{display:flex}
   .modal{
@@ -49,15 +52,19 @@
     pointer-events:auto;
     z-index:120001;
     position:relative;
+    -webkit-overflow-scrolling:touch;
   }
-  textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-family:inherit;resize:vertical}
+  textarea{
+    width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;
+    font-family:inherit;resize:vertical;
+    outline: none; /* remove default, add custom on focus */
+  }
+  textarea:focus{ box-shadow:0 0 0 3px rgba(10,170,170,0.12); border-color: #0aa; }
   .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
   .q-item{padding:8px;border-bottom:1px solid #eee}
   .danger{background:#ff6b6b}
   .success{background:#2b8a3e}
   .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
-  /* Ensure nothing overlays modal or textarea */
-  .overlay-fix{pointer-events:none}
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 </style>
 </head>
@@ -123,7 +130,7 @@
   <div class="modal" role="dialog" aria-modal="true">
     <h3>إضافة دفعة أسئلة</h3>
     <div class="note">ألصق حتى 1000 سطر. كل سطر: سؤال / الإجابة. مثال: 1. حيوان بحرف س / سمك</div>
-    <textarea id="batchText" placeholder="السطر الأول / الإجابة الأولى&#10;السطر الثاني / الإجابة الثانية"></textarea>
+    <textarea id="batchText" placeholder="السطر الأول / الإجابة الأولى&#10;السطر الثاني / الإجابة الثانية" tabindex="0" ></textarea>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button id="parseBtn">قراءة المعاينة</button>
       <button id="commitBtn" class="success">أضف إلى المخزن</button>
@@ -228,7 +235,6 @@ function selectLetter(l){
 }
 function loadRandomForLetter(letter){
   const qs = loadQuestions();
-  // تصفية باستخدام الخاصية startsWith المخزنة مع كل سؤال
   const pool = qs.filter(q => (q.startsWith || '') === letter);
   if(pool.length === 0){
     questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
@@ -268,41 +274,80 @@ const modalBack = document.getElementById('modalBack');
 const batchText = document.getElementById('batchText');
 const preview = document.getElementById('preview');
 
-document.getElementById('openBatch').addEventListener('click', ()=>{
-  // افتح المودال
+function openModal(){
   modalBack.classList.add('open');
   modalBack.setAttribute('aria-hidden','false');
-
-  // تأكد أن المودال و الـbackdrop أعلى العناصر
+  // ensure stacking & pointer-events
   modalBack.style.zIndex = '120000';
   const modalEl = modalBack.querySelector('.modal');
   if(modalEl) modalEl.style.zIndex = '120001';
-
-  // تمكين الـtextarea بطريقة مباشرة (avoid removeAttribute quirks)
+  // enable textarea
   batchText.disabled = false;
   batchText.readOnly = false;
   batchText.style.pointerEvents = 'auto';
   batchText.tabIndex = 0;
+  // give a hint (no forced focus) — rely on user interaction to focus (works reliably on mobile)
+  // but also try a gentle programmatic focus after a short delay (may be blocked on iOS if not user-initiated)
+  setTimeout(()=>{ try{ batchText.focus({preventScroll:true}); }catch(e){} }, 160);
+}
 
-  // على بعض المتصفحات (خصوصاً iOS) يحتاج وقت قبل قبول الفوكس
-  setTimeout(()=> {
-    try {
-      // استخدم خيار focus متحفظ لمنع التمرير غير المرغوب
-      if (typeof batchText.focus === 'function') batchText.focus({ preventScroll: true });
-      // وضع المؤشر آخر النص
-      batchText.selectionStart = batchText.selectionEnd = batchText.value.length;
-    } catch(e){}
-  }, 150); // زيادة بسيطة في التأخير لتحسين التوافق على الجوالات
-});
-
-document.getElementById('closeModal').addEventListener('click', ()=>{
+function closeModal(){
   modalBack.classList.remove('open');
   modalBack.setAttribute('aria-hidden','true');
+  // blur textarea to hide keyboard
+  try{ batchText.blur(); }catch(e){}
+}
+
+document.getElementById('openBatch').addEventListener('click', (ev)=>{
+  ev.stopPropagation();
+  openModal();
 });
 
-/* Paste handler: allow paste and keep default behavior */
+// close button
+document.getElementById('closeModal').addEventListener('click', ()=>{
+  closeModal();
+});
+
+// click outside modal closes it
+modalBack.addEventListener('click', (e)=>{
+  if(e.target === modalBack) closeModal();
+});
+
+// IMPORTANT: focus on first user touch / click inside the modal or textarea
+// These handlers are user-initiated events and will allow the keyboard to open on mobile.
+batchText.addEventListener('touchstart', function touchFocus(e){
+  // stop propagation so outer handlers don't close modal
+  e.stopPropagation();
+  // small delay to ensure system accepts this as user-gesture focus
+  setTimeout(()=> {
+    try { batchText.focus(); batchText.selectionStart = batchText.selectionEnd = batchText.value.length; }catch(err){}
+  }, 0);
+}, {passive:true});
+
+batchText.addEventListener('mousedown', function(e){
+  e.stopPropagation();
+  try { batchText.focus(); batchText.selectionStart = batchText.selectionEnd = batchText.value.length; }catch(err){}
+});
+
+batchText.addEventListener('click', function(e){
+  e.stopPropagation();
+  try { batchText.focus(); }catch(err){}
+});
+
+// also allow touching the modal area to focus the textarea (useful if user taps modal frame)
+const modalElement = modalBack.querySelector('.modal');
+if(modalElement){
+  modalElement.addEventListener('touchstart', function(e){
+    // if target is not a form control, focus the textarea to help keyboard appear
+    const t = e.target;
+    if(t && (t.tagName !== 'TEXTAREA' && t.tagName !== 'INPUT' && t.tagName !== 'BUTTON')){
+      setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 0);
+    }
+  }, {passive:true});
+}
+
+// Paste handler: allow default paste and refocus
 batchText.addEventListener('paste', (e)=>{
-  // no-op: allow default paste; focus will remain
   setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10);
 });
 
@@ -352,8 +397,7 @@ document.getElementById('commitBtn').addEventListener('click', ()=>{
   });
   saveQuestions(arr);
   renderList();
-  modalBack.classList.remove('open');
-  modalBack.setAttribute('aria-hidden','true');
+  closeModal();
   alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
 });
 
@@ -421,22 +465,18 @@ function renderList(){
   try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) JSON.parse(raw); }catch(e){ localStorage.removeItem(STORAGE_KEY); }
   buildLetters();
   renderList();
-  // Safety: ensure modal and textarea are interactive
-  const mb = document.getElementById('modalBack');
-  const bt = document.getElementById('batchText');
-  if(mb) { mb.style.pointerEvents = 'auto'; mb.style.zIndex = '120000'; }
-  if(bt){
-    bt.style.pointerEvents = 'auto';
-    bt.readOnly = false;
-    bt.disabled = false;
-    bt.removeAttribute('readonly');
-    bt.removeAttribute('disabled');
-    bt.tabIndex = 0;
-  }
-
-  // Improve touch behavior for mobile devices (passive listener)
+  // ensure textarea interactive
   try{
-    modalBack.addEventListener('touchstart', (e)=>{}, {passive:true});
+    modalBack.style.pointerEvents = 'auto';
+    modalBack.style.zIndex = '120000';
+    if(batchText){
+      batchText.style.pointerEvents = 'auto';
+      batchText.readOnly = false;
+      batchText.disabled = false;
+      batchText.tabIndex = 0;
+    }
+    // attach a passive touchstart to modalBack to improve iOS touch responsiveness
+    modalBack.addEventListener('touchstart', function(){}, {passive:true});
   }catch(e){}
 })();
 </script>
