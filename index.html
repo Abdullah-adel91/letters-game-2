@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف - نسخة مبسطة</title>
+<title>لعبة الحروف — تعديل: إزالة الحقول المحددة</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
   html,body{height:100%}
@@ -31,45 +31,126 @@
   }
   .letter-btn:hover{background:#f0f8f7}
   .letter-btn:focus{outline:2px solid #bde; outline-offset:2px}
-  .question-area{margin-top:12px;font-size:1.2rem;min-height:48px}
+  .question-area{margin-top:12px;font-size:1.15rem;min-height:48px}
   .answer-area{margin-top:8px;font-size:1.05rem;color:#0aa;min-height:32px}
   .mask{color:var(--muted);margin-top:6px}
+  input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px;box-sizing:border-box}
+  button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
   .muted{color:var(--muted)}
   hr{border:0;border-top:1px solid #eee;margin:14px 0}
+  /* Modal */
+  .modal-back{
+    position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;
+    z-index:120000;
+    pointer-events:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .modal-back.open{display:flex}
+  .modal{
+    background:#fff;border-radius:10px;padding:14px;max-width:920px;width:95%;max-height:86vh;overflow:auto;
+    box-shadow:0 12px 40px rgba(0,0,0,0.2);
+    pointer-events:auto;
+    z-index:120001;
+    position:relative;
+    -webkit-overflow-scrolling:touch;
+  }
+  textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-family:inherit;resize:vertical}
+  .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
+  .q-item{padding:8px;border-bottom:1px solid #eee}
+  .danger{background:#ff6b6b}
+  .success{background:#2b8a3e}
+  .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
+
+  /* العناصر المحددة — مخفية حسب طلبك */
+  /* 1) حقل الإجابة ومجموعة أزرار التحقق/سؤال جديد */
+  #answerInput, #checkBtn, #newBtn, #toggleAnswerBtn, #result { display: none !important; }
+
+  /* 2) فقرة التوضيح في قسم الإدارة (مخفية) */
+  .admin-note { display: none !important; }
+
+  /* 3) قائمة الأسئلة المحفوظة (مخفية) */
+  #qList { display: none !important; }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card" id="uiCard">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-        <div>
-          <div class="small">اختر حرف</div>
-          <div style="margin-top:8px">
-            <div class="dropdown" id="dropdownRoot" aria-haspopup="true" aria-expanded="false">
-              <div class="picker" id="openPicker" role="button" aria-label="فتح قائمة الحروف" tabindex="0">
-                <span id="selectedLetter">اختر حرفاً</span>
-                <svg style="width:18px;height:18px" viewBox="0 0 24 24"><path fill="#666" d="M7 10l5 5 5-5z"/></svg>
-              </div>
-              <div class="letters-list" id="lettersList" role="menu" aria-hidden="true">
-                <div class="letters-grid" id="lettersGrid" aria-label="قائمة الحروف"></div>
-              </div>
+<div class="wrap">
+  <div class="card" id="uiCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="small">اختر حرف</div>
+        <div style="margin-top:8px">
+          <div class="dropdown" id="dropdownRoot" aria-haspopup="true" aria-expanded="false">
+            <div class="picker" id="openPicker" role="button" aria-label="فتح قائمة الحروف" tabindex="0">
+              <span id="selectedLetter">اختر حرفاً</span>
+              <svg style="width:18px;height:18px" viewBox="0 0 24 24"><path fill="#666" d="M7 10l5 5 5-5z"/></svg>
+            </div>
+            <div class="letters-list" id="lettersList" role="menu" aria-hidden="true">
+              <div class="letters-grid" id="lettersGrid" aria-label="قائمة الحروف"></div>
             </div>
           </div>
         </div>
-
-        <div style="text-align:left;min-width:180px">
-          <div class="small">سهل وبسيط</div>
-          <div class="note">اضغط على المستطيل لفتح قائمة الحروف ثم اختر حرفاً</div>
-        </div>
       </div>
 
-      <div class="question-area" id="questionArea">لا يوجد سؤال بعد. اختر حرفاً.</div>
-      <div class="answer-area" id="answerArea"></div>
+      <div style="text-align:left;min-width:180px">
+        <div class="small">سهل وبسيط</div>
+        <div class="note">اضغط على المستطيل لفتح قائمة الحروف ثم اختر حرفاً</div>
+      </div>
     </div>
 
-    <!-- تم إزالة قسم الإدارة بالكامل حسب طلبك -->
+    <div class="question-area" id="questionArea">لا يوجد سؤال بعد. اختر حرفاً.</div>
+    <div class="answer-area" id="answerArea"></div>
+
+    <!-- حُذفت حقول الإدخال وأزرار التحقق حسب الصورة المحددة -->
+    <input id="answerInput" type="text" placeholder="اكتب إجابتك هنا (اختياري للتحقق)" style="display:none">
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button id="checkBtn">تحقق</button>
+      <button id="newBtn" style="background:#666">سؤال جديد</button>
+      <button id="toggleAnswerBtn" class="toggle-link" style="margin-left:auto">أخفِ الإجابة</button>
+    </div>
+    <div id="result" style="margin-top:10px;font-weight:bold"></div>
   </div>
+
+  <hr>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>الإدارة</strong>
+      <div class="small">إضافة دفعات أسئلة أو استعرض القائمة المحلية</div>
+    </div>
+
+    <div style="margin-top:10px">
+      <!-- فقرة التوضيح مخفية حسب طلبك -->
+      <div class="note admin-note">تنسيق الدفعة: كل سطر سؤال / الإجابة — الموقع يتجاهل أرقام البداية مثل "1. " أو "1) " تلقائياً</div>
+
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="openBatch" class="success">أضف دفعة أسئلة</button>
+        <button id="exportBtn" style="background:#444">تصدير JSON</button>
+        <button id="clearBtn" class="danger">مسح كل الأسئلة</button>
+      </div>
+
+      <div class="note" style="margin-top:8px">قائمة الأسئلة المحفوظة محلياً (localStorage)</div>
+
+      <!-- قائمة الأسئلة مخفية حسب طلبك -->
+      <div class="q-list" id="qList" style="margin-top:8px; display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal batch (يبقى كما هو حتى تقدر تضيف بيانات للموقع عند الحاجة) -->
+<div class="modal-back" id="modalBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>إضافة دفعة أسئلة</h3>
+    <div class="note">ألصق حتى 1000 سطر. كل سطر: سؤال / الإجابة. مثال: 1. حيوان بحرف س / سمك</div>
+    <textarea id="batchText" placeholder="السطر الأول / الإجابة الأولى&#10;السطر الثاني / الإجابة الثانية"></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="parseBtn">قراءة المعاينة</button>
+      <button id="commitBtn" class="success">أضف إلى المخزن</button>
+      <button id="closeModal" style="background:#888">إغلاق</button>
+    </div>
+    <div id="preview" style="margin-top:12px"></div>
+  </div>
+</div>
 
 <script>
 /* ======= دوال التطبيع ======= */
@@ -86,9 +167,10 @@ function normalizeArabic(text){
 }
 function firstCharAfterNormalize(text){ const n = normalizeArabic(text); return n.length ? n[0] : ''; }
 
-/* ======= تخزين/قراءة (نستخدم فقط للقراءة من localStorage لو فيه بيانات سابقة) ======= */
+/* ======= تخزين محلي ======= */
 const STORAGE_KEY = 'qa_bank_v2';
 function loadQuestions(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ localStorage.removeItem(STORAGE_KEY); return []; } }
+function saveQuestions(arr){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }catch(e){} }
 
 /* ======= عناصر الواجهة ======= */
 const letters = 'ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي'.split(' ');
@@ -161,13 +243,11 @@ function selectLetter(l){
   toggleDropdown(false);
   loadRandomForLetter(currentLetter);
 }
-
 function loadRandomForLetter(letter){
   const qs = loadQuestions();
-  // لو ما فيه أسئلة محلية، نراعي ذلك
   const pool = qs.filter(q => (q.startsWith || '') === letter);
   if(pool.length === 0){
-    questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً.';
+    questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
     answerArea.textContent = '';
     currentQuestion = null;
     return;
@@ -175,19 +255,93 @@ function loadRandomForLetter(letter){
   const q = pool[Math.floor(Math.random()*pool.length)];
   currentQuestion = q;
   questionArea.textContent = q.question || '';
-  // عرض الإجابة مباشرة تحت السؤال
   answerArea.textContent = (q.answer || '');
 }
 
-/* تهيئة أولية */
+/* إدارة الدفعات — (المودال يعمل كما سابقاً) */
+const modalBack = document.getElementById('modalBack');
+const batchText = document.getElementById('batchText');
+const preview = document.getElementById('preview');
+
+document.getElementById('openBatch').addEventListener('click', ()=>{
+  modalBack.classList.add('open');
+  modalBack.setAttribute('aria-hidden','false');
+  batchText.disabled = false; batchText.readOnly = false; batchText.style.pointerEvents = 'auto';
+  setTimeout(()=>{ try{ batchText.focus({preventScroll:true}); }catch(e){} }, 160);
+});
+document.getElementById('closeModal').addEventListener('click', ()=>{
+  modalBack.classList.remove('open');
+  modalBack.setAttribute('aria-hidden','true');
+});
+
+document.getElementById('parseBtn').addEventListener('click', ()=>{
+  const raw = batchText.value.replace(/\r/g,'').trim();
+  if(!raw){ alert('ألصق النص أولاً'); return; }
+  const lines = raw.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  const parsed = [];
+  for(let i=0;i<lines.length;i++){
+    let line = lines[i];
+    // تجاهل أرقام البداية
+    line = line.replace(/^\uFEFF/, '').trim();
+    const m = line.match(/^\s*\d+\s*(?:[.)\-:]\s*|\s+)/);
+    if(m) line = line.slice(m[0].length).trim();
+    let parts = line.split('/');
+    if(parts.length < 2) parts = line.split('||');
+    if(parts.length < 2){
+      let sepIndex = line.lastIndexOf(' - ');
+      if(sepIndex === -1) sepIndex = line.lastIndexOf(' — ');
+      if(sepIndex === -1) sepIndex = line.lastIndexOf(':');
+      if(sepIndex > 0) parts = [line.slice(0, sepIndex), line.slice(sepIndex + (line[sepIndex]===':'?1:3))];
+      else { const idx = line.lastIndexOf(' '); if(idx>0) parts = [line.slice(0, idx), line.slice(idx+1)]; else parts=[line,'']; }
+    }
+    const q = (parts[0]||'').trim();
+    const a = (parts[1]||'').trim();
+    if(!q || !a) parsed.push({ok:false, raw:lines[i], reason:'مفقود سؤال أو إجابة بعد التنظيف'});
+    else parsed.push({ok:true, question:q, answer:a});
+  }
+  preview.innerHTML = parsed.map((p,i)=> p.ok ? `<div class="small">${i+1}. <strong>${escapeHtml(p.question)}</strong> — ${escapeHtml(p.answer)}</div>` : `<div class="small" style="color:crimson">${i+1}. خطأ: ${escapeHtml(p.raw)} — ${escapeHtml(p.reason)}</div>`).join('');
+  preview.dataset.parsed = JSON.stringify(parsed);
+});
+
+document.getElementById('commitBtn').addEventListener('click', ()=>{
+  const data = preview.dataset.parsed;
+  if(!data){ alert('اضغط قراءة المعاينة أولاً'); return; }
+  const parsed = JSON.parse(data);
+  const okItems = parsed.filter(p=>p.ok);
+  if(okItems.length === 0){ alert('لا توجد عناصر صحيحة للإضافة'); return; }
+  const arr = loadQuestions();
+  okItems.forEach(it=>{
+    const id = 'q'+Math.random().toString(36).slice(2,10);
+    const starts = firstCharAfterNormalize(it.answer);
+    arr.push({ id, question: it.question, answer: it.answer, category: 'عام', difficulty: 'easy', startsWith: starts, createdAt: new Date().toISOString() });
+  });
+  saveQuestions(arr);
+  // إعادة تحميل الواجهة (قائمة الأسئلة مخفية لكن البيانات محفوظة محلياً)
+  modalBack.classList.remove('open');
+  modalBack.setAttribute('aria-hidden','true');
+  alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
+});
+
+/* استيراد/تصدير ومسح */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const arr = loadQuestions();
+  const blob = new Blob([JSON.stringify(arr, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'questions.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  if(!confirm('هل تريد مسح كل الأسئلة المحلية؟')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  alert('تم المسح — البيانات المحلية أُزيلت.');
+});
+
+/* مساعدة واجهة الإدارة */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* تهيئة */
 (function init(){
   buildLetters();
-  // لو ما في عناصر مخزنة، نعرض رسالة توضيحية
-  const arr = loadQuestions();
-  if(!arr || arr.length === 0){
-    questionArea.textContent = 'لا توجد أسئلة مخزنة محلياً. استخدم نسخة الإدارة لإضافة أسئلة (الإدارة محذوفة في هذه النسخة).';
-    answerArea.textContent = '';
-  }
+  // لا نعرض قائمة الأسئلة في الواجهة لكن نترك البيانات في localStorage إن أضفتها
 })();
 </script>
 </body>
