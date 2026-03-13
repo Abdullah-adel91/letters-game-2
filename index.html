@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف — تعديل: زر تغيير السؤال + إصلاح المودال</title>
+<title>لعبة الحروف — تخزين دفعات متكررة</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
   html,body{height:100%}
@@ -11,8 +11,6 @@
     font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
     direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111;
     -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-    -webkit-touch-callout: default;
-    -webkit-user-select: text;
   }
   .wrap{max-width:920px;margin:18px auto}
   .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(10,10,10,0.05);margin-bottom:12px}
@@ -63,14 +61,14 @@
   .danger{background:#ff6b6b}
   .success{background:#2b8a3e}
   .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
+  .badge{background:#eee;color:#222;padding:6px 10px;border-radius:999px;font-weight:600}
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 
-  /* العناصر المحددة — مخفية حسب طلبك */
+  /* نُخفي حقول المستخدم اللي طلبتها */
   #answerInput, #checkBtn, #newBtn, #toggleAnswerBtn, #result { display: none !important; }
   .admin-note { display: none !important; }
   #qList { display: none !important; }
 
-  /* زر تغيير السؤال تصميم خفيف */
   .change-btn{ background:#2b8a3e; margin-top:8px; display:none; }
 </style>
 </head>
@@ -93,9 +91,10 @@
         </div>
       </div>
 
-      <div style="text-align:left;min-width:180px">
+      <div style="text-align:left;min-width:180px;display:flex;gap:8px;align-items:center">
         <div class="small">سهل وبسيط</div>
-        <div class="note">اضغط على المستطيل لفتح قائمة الحروف ثم اختر حرفاً</div>
+        <div class="note">اضغط لفتح الحروف</div>
+        <div style="margin-left:8px">المحفوظ محلياً: <span id="storedCount" class="badge">0</span></div>
       </div>
     </div>
 
@@ -122,32 +121,27 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <strong>الإدارة</strong>
-      <div class="small">إضافة دفعات أسئلة أو استعرض القائمة المحلية</div>
+      <div class="small">أضف دفعات أسئلة أو استعرض المخزن المحلي</div>
     </div>
 
     <div style="margin-top:10px">
-      <!-- فقرة التوضيح مخفية حسب طلبك -->
-      <div class="note admin-note">تنسيق الدفعة: كل سطر سؤال / الإجابة — الموقع يتجاهل أرقام البداية مثل "1. " أو "1) " تلقائياً</div>
-
+      <!-- الفقرة التوضيحية مخفية لكن المودال يشتغل -->
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
         <button id="openBatch" class="success">أضف دفعة أسئلة</button>
         <button id="exportBtn" style="background:#444">تصدير JSON</button>
         <button id="clearBtn" class="danger">مسح كل الأسئلة</button>
       </div>
 
-      <div class="note" style="margin-top:8px">قائمة الأسئلة المحفوظة محلياً (localStorage)</div>
-
-      <!-- قائمة الأسئلة مخفية حسب طلبك -->
-      <div class="q-list" id="qList" style="margin-top:8px; display:none;"></div>
+      <div class="note" style="margin-top:8px">قائمة الأسئلة مخفية في الواجهة. المخزن يستخدم localStorage.</div>
     </div>
   </div>
 </div>
 
-<!-- Modal batch (يبقى كما هو حتى تقدر تضيف بيانات للموقع عند الحاجة) -->
+<!-- Modal batch -->
 <div class="modal-back" id="modalBack" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true">
-    <h3>إضافة دفعة أسئلة</h3>
-    <div class="note">ألصق حتى 1000 سطر. كل سطر: سؤال / الإجابة. مثال: 1. حيوان بحرف س / سمك</div>
+    <h3>أضف دفعة أسئلة (كل سطر: سؤال / إجابة)</h3>
+    <div class="note">يمكنك إضافة دفعات مرّة بعد مرّة. ستُضاف لتصبح مخزنة محليًا. تنسيق مقترح: "ما هو الحيوان؟ / أسد"</div>
     <textarea id="batchText" placeholder="السطر الأول / الإجابة الأولى&#10;السطر الثاني / الإجابة الثانية"></textarea>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button id="parseBtn">قراءة المعاينة</button>
@@ -177,6 +171,7 @@ function firstCharAfterNormalize(text){ const n = normalizeArabic(text); return 
 const STORAGE_KEY = 'qa_bank_v2';
 function loadQuestions(){ try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ localStorage.removeItem(STORAGE_KEY); return []; } }
 function saveQuestions(arr){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }catch(e){} }
+function updateStoredCount(){ const c = loadQuestions().length; document.getElementById('storedCount').textContent = c; }
 
 /* ======= عناصر الواجهة ======= */
 const letters = 'ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي'.split(' ');
@@ -268,96 +263,55 @@ function loadRandomForLetter(letter){
   if(pool.length === 1){
     currentIndexForLetter = 0;
   } else {
-    // لو لاتوجد قيمة سابقة اختَر عشوائي، وإلا حاول تختار غيرها
     let newIndex;
     if(currentIndexForLetter === -1 || currentIndexForLetter >= pool.length) {
       newIndex = Math.floor(Math.random()*pool.length);
     } else {
-      // اختر index مختلف عن currentIndexForLetter
       newIndex = Math.floor(Math.random()* (pool.length - 1));
-      if(newIndex >= currentIndexForLetter) newIndex++; // map to skip current
+      if(newIndex >= currentIndexForLetter) newIndex++;
     }
     currentIndexForLetter = newIndex;
   }
   currentQuestion = pool[currentIndexForLetter];
   questionArea.textContent = currentQuestion.question || '';
   answerArea.textContent = currentQuestion.answer || '';
-  // إظهار زر التغيير فقط لو فيه أكثر من عنصر
   changeQuestionBtn.style.display = (pool.length > 1) ? 'inline-block' : 'none';
 }
 
-/* زر تغيير السؤال: يحمّل سؤال آخر لنفس الحرف */
+/* زر تغيير السؤال */
 changeQuestionBtn.addEventListener('click', ()=>{
   if(!currentLetter){ alert('اختر حرفاً أولاً'); return; }
-  // فقط استدعي نفس الدالة التي تختار عنصر جديد (ستحاول اختيار index مختلف)
   loadRandomForLetter(currentLetter);
 });
 
-/* إدارة الدفعات — إصلاح المودال ليقبل الكتابة على الجوال */
+/* إدارة الدفعات — المودال والكتابة */
 const modalBack = document.getElementById('modalBack');
 const batchText = document.getElementById('batchText');
 const preview = document.getElementById('preview');
 
 function openModal(){
-  modalBack.classList.add('open');
-  modalBack.setAttribute('aria-hidden','false');
-  // stacking
+  modalBack.classList.add('open'); modalBack.setAttribute('aria-hidden','false');
   modalBack.style.zIndex = '120000';
-  const modalEl = modalBack.querySelector('.modal');
-  if(modalEl) modalEl.style.zIndex = '120001';
-  // تمكين الـtextarea بطريقة مباشرة
-  if(batchText){
-    batchText.disabled = false;
-    batchText.readOnly = false;
-    batchText.style.pointerEvents = 'auto';
-    batchText.tabIndex = 0;
-    // محاولة فوكس بعد تأخير قصير (يسمح على معظم الأجهزة)
+  const modalEl = modalBack.querySelector('.modal'); if(modalEl) modalEl.style.zIndex = '120001';
+  if(batchText){ batchText.disabled = false; batchText.readOnly = false; batchText.style.pointerEvents = 'auto'; batchText.tabIndex = 0;
     setTimeout(()=>{ try{ batchText.focus({preventScroll:true}); batchText.selectionStart = batchText.value.length; }catch(e){} }, 160);
   }
 }
+function closeModal(){ modalBack.classList.remove('open'); modalBack.setAttribute('aria-hidden','true'); try{ if(batchText) batchText.blur(); }catch(e){} }
 
-// اغلاق المودال
-function closeModal(){
-  modalBack.classList.remove('open');
-  modalBack.setAttribute('aria-hidden','true');
-  try{ if(batchText) batchText.blur(); }catch(e){}
-}
-
-document.getElementById('openBatch').addEventListener('click', (ev)=>{
-  ev.stopPropagation();
-  openModal();
-});
+document.getElementById('openBatch').addEventListener('click', (ev)=>{ ev.stopPropagation(); openModal(); });
 document.getElementById('closeModal').addEventListener('click', ()=>{ closeModal(); });
 
-// تحسين استجابة اللمس للفوكس داخل الـtextarea (حل لمشاكل iOS/Android)
-try{
-  // passive touchstart لتحسين الأداء وعدم منع التمرير
-  modalBack.addEventListener('touchstart', ()=>{}, {passive:true});
-} catch(e){}
+try{ modalBack.addEventListener('touchstart', ()=>{}, {passive:true}); }catch(e){}
 
 if(batchText){
-  batchText.addEventListener('touchstart', function(e){
-    e.stopPropagation();
-    try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(err){}
-  }, {passive:true});
-
-  batchText.addEventListener('mousedown', function(e){
-    e.stopPropagation();
-    try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(err){}
-  });
-
-  batchText.addEventListener('click', function(e){
-    e.stopPropagation();
-    try{ batchText.focus(); }catch(err){}
-  });
-
-  // بعد اللصق، نعيد الفوكس
-  batchText.addEventListener('paste', ()=>{
-    setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10);
-  });
+  batchText.addEventListener('touchstart', function(e){ e.stopPropagation(); try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(err){} }, {passive:true});
+  batchText.addEventListener('mousedown', function(e){ e.stopPropagation(); try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(err){} });
+  batchText.addEventListener('click', function(e){ e.stopPropagation(); try{ batchText.focus(); }catch(err){} });
+  batchText.addEventListener('paste', ()=>{ setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10); });
 }
 
-/* Parse / Commit الدفعات (كما كان لديك) */
+/* قراءة المعاينة */
 document.getElementById('parseBtn').addEventListener('click', ()=>{
   const raw = batchText.value.replace(/\r/g,'').trim();
   if(!raw){ alert('ألصق النص أولاً'); return; }
@@ -387,23 +341,42 @@ document.getElementById('parseBtn').addEventListener('click', ()=>{
   preview.dataset.parsed = JSON.stringify(parsed);
 });
 
+/* Commit: إضافة الدفعة إلى المخزن (يدمج، ويتجنب التكرار المطابق) */
 document.getElementById('commitBtn').addEventListener('click', ()=>{
   const data = preview.dataset.parsed;
   if(!data){ alert('اضغط قراءة المعاينة أولاً'); return; }
   const parsed = JSON.parse(data);
   const okItems = parsed.filter(p=>p.ok);
   if(okItems.length === 0){ alert('لا توجد عناصر صحيحة للإضافة'); return; }
-  const arr = loadQuestions();
+
+  const arr = loadQuestions(); // موجود في localStorage
+  let added = 0;
+
   okItems.forEach(it=>{
-    const id = 'q'+Math.random().toString(36).slice(2,10);
-    const starts = firstCharAfterNormalize(it.answer);
-    arr.push({ id, question: it.question, answer: it.answer, category: 'عام', difficulty: 'easy', startsWith: starts, createdAt: new Date().toISOString() });
+    const normalizedQ = (it.question||'').trim();
+    const normalizedA = (it.answer||'').trim();
+    // تجنّب التكرار المطابق (سؤال+إجابة)
+    const exists = arr.some(x => (x.question||'').trim() === normalizedQ && (x.answer||'').trim() === normalizedA);
+    if(!exists){
+      const id = 'q'+Math.random().toString(36).slice(2,10);
+      const starts = firstCharAfterNormalize(normalizedA);
+      arr.push({ id, question: normalizedQ, answer: normalizedA, category: 'عام', difficulty: 'easy', startsWith: starts, createdAt: new Date().toISOString() });
+      added++;
+    }
   });
+
   saveQuestions(arr);
-  // لو أنت الآن بعرض حرف معين، امنح فرصة لتحديث زر تغيير السؤال
+  updateStoredCount();
+
+  // لو المستخدم يعرض حرف الآن، حدّث السؤال والزر
   if(currentLetter) loadRandomForLetter(currentLetter);
+
+  // لا نمسح الـtextarea تلقائياً (تبقى جاهزة لإضافة دفعة أخرى)
+  preview.dataset.parsed = '';
+  preview.innerHTML = '';
+
+  alert(`تمت إضافة ${added} سؤالاً جديدة. الإجمالي الآن ${arr.length} سؤالاً (تم تجاهل المتكرر).`);
   closeModal();
-  alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
 });
 
 /* استيراد/تصدير ومسح */
@@ -416,6 +389,7 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
 document.getElementById('clearBtn').addEventListener('click', ()=>{
   if(!confirm('هل تريد مسح كل الأسئلة المحلية؟')) return;
   localStorage.removeItem(STORAGE_KEY);
+  updateStoredCount();
   alert('تم المسح — البيانات المحلية أُزيلت.');
 });
 
@@ -425,6 +399,7 @@ function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 /* تهيئة */
 (function init(){
   buildLetters();
+  updateStoredCount();
 })();
 </script>
 </body>
