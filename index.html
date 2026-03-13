@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف — تعديل: إزالة الحقول المحددة</title>
+<title>لعبة الحروف — مع زر تغيير السؤال</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
   html,body{height:100%}
@@ -34,42 +34,16 @@
   .question-area{margin-top:12px;font-size:1.15rem;min-height:48px}
   .answer-area{margin-top:8px;font-size:1.05rem;color:#0aa;min-height:32px}
   .mask{color:var(--muted);margin-top:6px}
-  input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px;box-sizing:border-box}
-  button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
   .muted{color:var(--muted)}
   hr{border:0;border-top:1px solid #eee;margin:14px 0}
-  /* Modal */
-  .modal-back{
-    position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;
-    z-index:120000;
-    pointer-events:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-  .modal-back.open{display:flex}
-  .modal{
-    background:#fff;border-radius:10px;padding:14px;max-width:920px;width:95%;max-height:86vh;overflow:auto;
-    box-shadow:0 12px 40px rgba(0,0,0,0.2);
-    pointer-events:auto;
-    z-index:120001;
-    position:relative;
-    -webkit-overflow-scrolling:touch;
-  }
-  textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-family:inherit;resize:vertical}
-  .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
-  .q-item{padding:8px;border-bottom:1px solid #eee}
-  .danger{background:#ff6b6b}
+  button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
   .success{background:#2b8a3e}
   .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 
-  /* العناصر المحددة — مخفية حسب طلبك */
-  /* 1) حقل الإجابة ومجموعة أزرار التحقق/سؤال جديد */
+  /* إخفاء عناصر الإدخال التي طلبت سابقاً */
   #answerInput, #checkBtn, #newBtn, #toggleAnswerBtn, #result { display: none !important; }
-
-  /* 2) فقرة التوضيح في قسم الإدارة (مخفية) */
   .admin-note { display: none !important; }
-
-  /* 3) قائمة الأسئلة المحفوظة (مخفية) */
   #qList { display: none !important; }
 </style>
 </head>
@@ -101,7 +75,12 @@
     <div class="question-area" id="questionArea">لا يوجد سؤال بعد. اختر حرفاً.</div>
     <div class="answer-area" id="answerArea"></div>
 
-    <!-- حُذفت حقول الإدخال وأزرار التحقق حسب الصورة المحددة -->
+    <!-- زر تغيير السؤال تحت الإجابة -->
+    <div style="margin-top:10px">
+      <button id="changeQuestionBtn" class="success" style="display:none">تغيير السؤال</button>
+    </div>
+
+    <!-- الحقول المخفية سابقاً تبقى موجودة لكن مخفّية -->
     <input id="answerInput" type="text" placeholder="اكتب إجابتك هنا (اختياري للتحقق)" style="display:none">
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button id="checkBtn">تحقق</button>
@@ -120,7 +99,6 @@
     </div>
 
     <div style="margin-top:10px">
-      <!-- فقرة التوضيح مخفية حسب طلبك -->
       <div class="note admin-note">تنسيق الدفعة: كل سطر سؤال / الإجابة — الموقع يتجاهل أرقام البداية مثل "1. " أو "1) " تلقائياً</div>
 
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
@@ -130,14 +108,12 @@
       </div>
 
       <div class="note" style="margin-top:8px">قائمة الأسئلة المحفوظة محلياً (localStorage)</div>
-
-      <!-- قائمة الأسئلة مخفية حسب طلبك -->
       <div class="q-list" id="qList" style="margin-top:8px; display:none;"></div>
     </div>
   </div>
 </div>
 
-<!-- Modal batch (يبقى كما هو حتى تقدر تضيف بيانات للموقع عند الحاجة) -->
+<!-- Modal batch (يبقى كما هو) -->
 <div class="modal-back" id="modalBack" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true">
     <h3>إضافة دفعة أسئلة</h3>
@@ -181,6 +157,7 @@ const dropdownRoot = document.getElementById('dropdownRoot');
 const selectedLetterEl = document.getElementById('selectedLetter');
 const questionArea = document.getElementById('questionArea');
 const answerArea = document.getElementById('answerArea');
+const changeQuestionBtn = document.getElementById('changeQuestionBtn');
 
 let currentLetter = '';
 let currentQuestion = null;
@@ -243,6 +220,8 @@ function selectLetter(l){
   toggleDropdown(false);
   loadRandomForLetter(currentLetter);
 }
+
+/* تحميل سؤال عشوائي لنفس الحرف، مع محاولة عدم تكرار نفس السؤال (لو فيه أكثر من واحد) */
 function loadRandomForLetter(letter){
   const qs = loadQuestions();
   const pool = qs.filter(q => (q.startsWith || '') === letter);
@@ -250,15 +229,32 @@ function loadRandomForLetter(letter){
     questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
     answerArea.textContent = '';
     currentQuestion = null;
+    changeQuestionBtn.style.display = 'none';
     return;
   }
-  const q = pool[Math.floor(Math.random()*pool.length)];
+  let q = pool[Math.floor(Math.random()*pool.length)];
+  // حاول ألا تختار نفس السؤال إذا كان هناك أكثر من واحد
+  if(currentQuestion && pool.length > 1){
+    let attempts = 0;
+    while(q && currentQuestion.id && q.id === currentQuestion.id && attempts < 8){
+      q = pool[Math.floor(Math.random()*pool.length)];
+      attempts++;
+    }
+  }
   currentQuestion = q;
   questionArea.textContent = q.question || '';
   answerArea.textContent = (q.answer || '');
+  // اعرض زر تغيير السؤال إن كان هناك سؤال واحد أو أكثر (لكن لا نظهره إذا لا يوجد)
+  changeQuestionBtn.style.display = 'inline-block';
 }
 
-/* إدارة الدفعات — (المودال يعمل كما سابقاً) */
+/* زر تغيير السؤال: يعيد تحميل سؤال آخر لنفس الحرف */
+changeQuestionBtn.addEventListener('click', ()=>{
+  if(!currentLetter){ alert('اختر حرفاً أولاً'); return; }
+  loadRandomForLetter(currentLetter);
+});
+
+/* إدارة الدفعات — (المودال كما سابقاً) */
 const modalBack = document.getElementById('modalBack');
 const batchText = document.getElementById('batchText');
 const preview = document.getElementById('preview');
@@ -316,7 +312,6 @@ document.getElementById('commitBtn').addEventListener('click', ()=>{
     arr.push({ id, question: it.question, answer: it.answer, category: 'عام', difficulty: 'easy', startsWith: starts, createdAt: new Date().toISOString() });
   });
   saveQuestions(arr);
-  // إعادة تحميل الواجهة (قائمة الأسئلة مخفية لكن البيانات محفوظة محلياً)
   modalBack.classList.remove('open');
   modalBack.setAttribute('aria-hidden','true');
   alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
