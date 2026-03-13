@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف — تعديل: إزالة الحقول المحددة</title>
+<title>لعبة الحروف — تعديل: زر تغيير السؤال + إصلاح المودال</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
   html,body{height:100%}
@@ -11,6 +11,8 @@
     font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
     direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111;
     -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
   }
   .wrap{max-width:920px;margin:18px auto}
   .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(10,10,10,0.05);margin-bottom:12px}
@@ -55,6 +57,7 @@
     -webkit-overflow-scrolling:touch;
   }
   textarea{width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-family:inherit;resize:vertical}
+  textarea:focus{ box-shadow:0 0 0 3px rgba(10,170,170,0.12); border-color: #0aa; }
   .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
   .q-item{padding:8px;border-bottom:1px solid #eee}
   .danger{background:#ff6b6b}
@@ -63,14 +66,12 @@
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 
   /* العناصر المحددة — مخفية حسب طلبك */
-  /* 1) حقل الإجابة ومجموعة أزرار التحقق/سؤال جديد */
   #answerInput, #checkBtn, #newBtn, #toggleAnswerBtn, #result { display: none !important; }
-
-  /* 2) فقرة التوضيح في قسم الإدارة (مخفية) */
   .admin-note { display: none !important; }
-
-  /* 3) قائمة الأسئلة المحفوظة (مخفية) */
   #qList { display: none !important; }
+
+  /* زر تغيير السؤال تصميم خفيف */
+  .change-btn{ background:#2b8a3e; margin-top:8px; display:none; }
 </style>
 </head>
 <body>
@@ -101,7 +102,12 @@
     <div class="question-area" id="questionArea">لا يوجد سؤال بعد. اختر حرفاً.</div>
     <div class="answer-area" id="answerArea"></div>
 
-    <!-- حُذفت حقول الإدخال وأزرار التحقق حسب الصورة المحددة -->
+    <!-- زر تغيير السؤال تحت الإجابة -->
+    <div style="margin-top:6px">
+      <button id="changeQuestionBtn" class="change-btn">تغيير السؤال</button>
+    </div>
+
+    <!-- الحقول المخفية سابقاً تبقى موجودة لكن مخفّية -->
     <input id="answerInput" type="text" placeholder="اكتب إجابتك هنا (اختياري للتحقق)" style="display:none">
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button id="checkBtn">تحقق</button>
@@ -181,9 +187,11 @@ const dropdownRoot = document.getElementById('dropdownRoot');
 const selectedLetterEl = document.getElementById('selectedLetter');
 const questionArea = document.getElementById('questionArea');
 const answerArea = document.getElementById('answerArea');
+const changeQuestionBtn = document.getElementById('changeQuestionBtn');
 
 let currentLetter = '';
 let currentQuestion = null;
+let currentIndexForLetter = -1; // index within pool for current question
 
 /* بناء الحروف */
 function buildLetters(){
@@ -243,6 +251,8 @@ function selectLetter(l){
   toggleDropdown(false);
   loadRandomForLetter(currentLetter);
 }
+
+/* تحميل سؤال لنفس الحرف، مع إدارة index */
 function loadRandomForLetter(letter){
   const qs = loadQuestions();
   const pool = qs.filter(q => (q.startsWith || '') === letter);
@@ -250,38 +260,112 @@ function loadRandomForLetter(letter){
     questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
     answerArea.textContent = '';
     currentQuestion = null;
+    currentIndexForLetter = -1;
+    changeQuestionBtn.style.display = 'none';
     return;
   }
-  const q = pool[Math.floor(Math.random()*pool.length)];
-  currentQuestion = q;
-  questionArea.textContent = q.question || '';
-  answerArea.textContent = (q.answer || '');
+  // إذا عندنا index حالي وحاب نغير، نختار index آخر مختلف إن أمكن
+  if(pool.length === 1){
+    currentIndexForLetter = 0;
+  } else {
+    // لو لاتوجد قيمة سابقة اختَر عشوائي، وإلا حاول تختار غيرها
+    let newIndex;
+    if(currentIndexForLetter === -1 || currentIndexForLetter >= pool.length) {
+      newIndex = Math.floor(Math.random()*pool.length);
+    } else {
+      // اختر index مختلف عن currentIndexForLetter
+      newIndex = Math.floor(Math.random()* (pool.length - 1));
+      if(newIndex >= currentIndexForLetter) newIndex++; // map to skip current
+    }
+    currentIndexForLetter = newIndex;
+  }
+  currentQuestion = pool[currentIndexForLetter];
+  questionArea.textContent = currentQuestion.question || '';
+  answerArea.textContent = currentQuestion.answer || '';
+  // إظهار زر التغيير فقط لو فيه أكثر من عنصر
+  changeQuestionBtn.style.display = (pool.length > 1) ? 'inline-block' : 'none';
 }
 
-/* إدارة الدفعات — (المودال يعمل كما سابقاً) */
+/* زر تغيير السؤال: يحمّل سؤال آخر لنفس الحرف */
+changeQuestionBtn.addEventListener('click', ()=>{
+  if(!currentLetter){ alert('اختر حرفاً أولاً'); return; }
+  // فقط استدعي نفس الدالة التي تختار عنصر جديد (ستحاول اختيار index مختلف)
+  loadRandomForLetter(currentLetter);
+});
+
+/* إدارة الدفعات — إصلاح المودال ليقبل الكتابة على الجوال */
 const modalBack = document.getElementById('modalBack');
 const batchText = document.getElementById('batchText');
 const preview = document.getElementById('preview');
 
-document.getElementById('openBatch').addEventListener('click', ()=>{
+function openModal(){
   modalBack.classList.add('open');
   modalBack.setAttribute('aria-hidden','false');
-  batchText.disabled = false; batchText.readOnly = false; batchText.style.pointerEvents = 'auto';
-  setTimeout(()=>{ try{ batchText.focus({preventScroll:true}); }catch(e){} }, 160);
-});
-document.getElementById('closeModal').addEventListener('click', ()=>{
+  // stacking
+  modalBack.style.zIndex = '120000';
+  const modalEl = modalBack.querySelector('.modal');
+  if(modalEl) modalEl.style.zIndex = '120001';
+  // تمكين الـtextarea بطريقة مباشرة
+  if(batchText){
+    batchText.disabled = false;
+    batchText.readOnly = false;
+    batchText.style.pointerEvents = 'auto';
+    batchText.tabIndex = 0;
+    // محاولة فوكس بعد تأخير قصير (يسمح على معظم الأجهزة)
+    setTimeout(()=>{ try{ batchText.focus({preventScroll:true}); batchText.selectionStart = batchText.value.length; }catch(e){} }, 160);
+  }
+}
+
+// اغلاق المودال
+function closeModal(){
   modalBack.classList.remove('open');
   modalBack.setAttribute('aria-hidden','true');
-});
+  try{ if(batchText) batchText.blur(); }catch(e){}
+}
 
+document.getElementById('openBatch').addEventListener('click', (ev)=>{
+  ev.stopPropagation();
+  openModal();
+});
+document.getElementById('closeModal').addEventListener('click', ()=>{ closeModal(); });
+
+// تحسين استجابة اللمس للفوكس داخل الـtextarea (حل لمشاكل iOS/Android)
+try{
+  // passive touchstart لتحسين الأداء وعدم منع التمرير
+  modalBack.addEventListener('touchstart', ()=>{}, {passive:true});
+} catch(e){}
+
+if(batchText){
+  batchText.addEventListener('touchstart', function(e){
+    e.stopPropagation();
+    try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(err){}
+  }, {passive:true});
+
+  batchText.addEventListener('mousedown', function(e){
+    e.stopPropagation();
+    try{ batchText.focus(); batchText.selectionStart = batchText.value.length; }catch(err){}
+  });
+
+  batchText.addEventListener('click', function(e){
+    e.stopPropagation();
+    try{ batchText.focus(); }catch(err){}
+  });
+
+  // بعد اللصق، نعيد الفوكس
+  batchText.addEventListener('paste', ()=>{
+    setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10);
+  });
+}
+
+/* Parse / Commit الدفعات (كما كان لديك) */
 document.getElementById('parseBtn').addEventListener('click', ()=>{
   const raw = batchText.value.replace(/\r/g,'').trim();
   if(!raw){ alert('ألصق النص أولاً'); return; }
   const lines = raw.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  if(lines.length > 1000 && !confirm(`أدخلت ${lines.length} سطر. الحد الموصى 1000. متابعة؟`)) return;
   const parsed = [];
   for(let i=0;i<lines.length;i++){
     let line = lines[i];
-    // تجاهل أرقام البداية
     line = line.replace(/^\uFEFF/, '').trim();
     const m = line.match(/^\s*\d+\s*(?:[.)\-:]\s*|\s+)/);
     if(m) line = line.slice(m[0].length).trim();
@@ -316,9 +400,9 @@ document.getElementById('commitBtn').addEventListener('click', ()=>{
     arr.push({ id, question: it.question, answer: it.answer, category: 'عام', difficulty: 'easy', startsWith: starts, createdAt: new Date().toISOString() });
   });
   saveQuestions(arr);
-  // إعادة تحميل الواجهة (قائمة الأسئلة مخفية لكن البيانات محفوظة محلياً)
-  modalBack.classList.remove('open');
-  modalBack.setAttribute('aria-hidden','true');
+  // لو أنت الآن بعرض حرف معين، امنح فرصة لتحديث زر تغيير السؤال
+  if(currentLetter) loadRandomForLetter(currentLetter);
+  closeModal();
   alert(`تمت إضافة ${okItems.length} سؤالاً محلياً`);
 });
 
@@ -341,7 +425,6 @@ function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 /* تهيئة */
 (function init(){
   buildLetters();
-  // لا نعرض قائمة الأسئلة في الواجهة لكن نترك البيانات في localStorage إن أضفتها
 })();
 </script>
 </body>
