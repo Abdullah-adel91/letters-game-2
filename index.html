@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>لعبة الحروف - نسخة مُحسّنة (fix input)</title>
+<title>لعبة الحروف - مع عرض الإجابة</title>
 <style>
   :root{--accent:#0aa;--bg:#f7f9fb;--card:#fff;--muted:#666}
   html,body{height:100%}
@@ -11,7 +11,6 @@
     font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
     direction:rtl;margin:0;padding:18px;background:var(--bg);color:#111;
     -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-    -webkit-touch-callout: default; /* allow text selection on iOS */
   }
   .wrap{max-width:920px;margin:18px auto}
   .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(10,10,10,0.05);margin-bottom:12px}
@@ -33,6 +32,7 @@
   .letter-btn:hover{background:#f0f8f7}
   .letter-btn:focus{outline:2px solid #bde; outline-offset:2px}
   .question-area{margin-top:12px;font-size:1.15rem;min-height:48px}
+  .answer-area{margin-top:8px;font-size:1.05rem;color:#0aa;min-height:32px}
   .mask{color:var(--muted);margin-top:6px}
   input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px;box-sizing:border-box}
   button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
@@ -57,7 +57,7 @@
   textarea{
     width:100%;min-height:220px;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;
     font-family:inherit;resize:vertical;
-    outline: none; /* remove default, add custom on focus */
+    outline: none;
   }
   textarea:focus{ box-shadow:0 0 0 3px rgba(10,170,170,0.12); border-color: #0aa; }
   .q-list{max-height:260px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;background:#fafafa}
@@ -65,6 +65,7 @@
   .danger{background:#ff6b6b}
   .success{background:#2b8a3e}
   .note{font-size:0.9rem;color:var(--muted);margin-top:8px}
+  .toggle-link{background:transparent;border:1px solid #ddd;color:#0aa;padding:6px 8px;border-radius:6px;cursor:pointer}
   @media(max-width:640px){ .letters-list{width:100% } .picker{width:100%;justify-content:center} }
 </style>
 </head>
@@ -94,12 +95,13 @@
     </div>
 
     <div class="question-area" id="questionArea">لا يوجد سؤال بعد. اختر حرفاً.</div>
-    <div class="mask" id="maskArea"></div>
+    <div class="answer-area" id="answerArea"></div>
 
     <input id="answerInput" type="text" placeholder="اكتب إجابتك هنا (اختياري للتحقق)">
-    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button id="checkBtn">تحقق</button>
       <button id="newBtn" style="background:#666">سؤال جديد</button>
+      <button id="toggleAnswerBtn" class="toggle-link" style="margin-left:auto">أخفِ الإجابة</button>
     </div>
     <div id="result" style="margin-top:10px;font-weight:bold"></div>
   </div>
@@ -168,12 +170,14 @@ const openPicker = document.getElementById('openPicker');
 const dropdownRoot = document.getElementById('dropdownRoot');
 const selectedLetterEl = document.getElementById('selectedLetter');
 const questionArea = document.getElementById('questionArea');
-const maskArea = document.getElementById('maskArea');
+const answerArea = document.getElementById('answerArea');
 const answerInput = document.getElementById('answerInput');
 const resultEl = document.getElementById('result');
+const toggleAnswerBtn = document.getElementById('toggleAnswerBtn');
 
 let currentLetter = '';
 let currentQuestion = null;
+let answerVisible = true; // الإجابة تظهر افتراضياً
 
 /* بناء الحروف */
 function buildLetters(){
@@ -238,18 +242,35 @@ function loadRandomForLetter(letter){
   const pool = qs.filter(q => (q.startsWith || '') === letter);
   if(pool.length === 0){
     questionArea.textContent = 'لا يوجد سؤال لهذا الحرف محلياً. أضف أسئلة في الإدارة.';
-    maskArea.textContent = '';
+    answerArea.textContent = '';
     currentQuestion = null;
     return;
   }
   const q = pool[Math.floor(Math.random()*pool.length)];
   currentQuestion = q;
-  questionArea.textContent = q.question;
-  maskArea.textContent = '_'.repeat(Math.max(3, (q.answer||'').replace(/\s+/g,'').length));
+  questionArea.textContent = q.question || '';
+  // عرض الإجابة (مباشراً) — حسب طلبك
+  answerArea.textContent = (q.answer || '');
+  // افتراضياً الإجابة مرئية؛ لو كانت مخفية نتيجتها تظهر مخفيّة
+  answerArea.style.display = answerVisible ? 'block' : 'none';
   resultEl.textContent = '';
   answerInput.value = '';
   answerInput.focus();
 }
+
+/* زر إظهار/إخفاء الإجابة */
+toggleAnswerBtn.addEventListener('click', ()=>{
+  answerVisible = !answerVisible;
+  if(answerVisible){
+    toggleAnswerBtn.textContent = 'أخفِ الإجابة';
+    answerArea.style.display = 'block';
+  } else {
+    toggleAnswerBtn.textContent = 'أظهر الإجابة';
+    answerArea.style.display = 'none';
+  }
+});
+
+/* أزرار التحقق والسؤال الجديد */
 document.getElementById('checkBtn').addEventListener('click', ()=>{
   if(!currentQuestion){ alert('اختر حرفاً ثم سؤالاً'); return; }
   const user = answerInput.value.trim();
@@ -277,79 +298,29 @@ const preview = document.getElementById('preview');
 function openModal(){
   modalBack.classList.add('open');
   modalBack.setAttribute('aria-hidden','false');
-  // ensure stacking & pointer-events
+  // stacking
   modalBack.style.zIndex = '120000';
   const modalEl = modalBack.querySelector('.modal');
   if(modalEl) modalEl.style.zIndex = '120001';
-  // enable textarea
   batchText.disabled = false;
   batchText.readOnly = false;
   batchText.style.pointerEvents = 'auto';
   batchText.tabIndex = 0;
-  // give a hint (no forced focus) — rely on user interaction to focus (works reliably on mobile)
-  // but also try a gentle programmatic focus after a short delay (may be blocked on iOS if not user-initiated)
   setTimeout(()=>{ try{ batchText.focus({preventScroll:true}); }catch(e){} }, 160);
 }
-
 function closeModal(){
   modalBack.classList.remove('open');
   modalBack.setAttribute('aria-hidden','true');
-  // blur textarea to hide keyboard
   try{ batchText.blur(); }catch(e){}
 }
+document.getElementById('openBatch').addEventListener('click', (ev)=>{ ev.stopPropagation(); openModal(); });
+document.getElementById('closeModal').addEventListener('click', ()=>{ closeModal(); });
+modalBack.addEventListener('click', (e)=>{ if(e.target === modalBack) closeModal(); });
 
-document.getElementById('openBatch').addEventListener('click', (ev)=>{
-  ev.stopPropagation();
-  openModal();
-});
-
-// close button
-document.getElementById('closeModal').addEventListener('click', ()=>{
-  closeModal();
-});
-
-// click outside modal closes it
-modalBack.addEventListener('click', (e)=>{
-  if(e.target === modalBack) closeModal();
-});
-
-// IMPORTANT: focus on first user touch / click inside the modal or textarea
-// These handlers are user-initiated events and will allow the keyboard to open on mobile.
-batchText.addEventListener('touchstart', function touchFocus(e){
-  // stop propagation so outer handlers don't close modal
-  e.stopPropagation();
-  // small delay to ensure system accepts this as user-gesture focus
-  setTimeout(()=> {
-    try { batchText.focus(); batchText.selectionStart = batchText.selectionEnd = batchText.value.length; }catch(err){}
-  }, 0);
-}, {passive:true});
-
-batchText.addEventListener('mousedown', function(e){
-  e.stopPropagation();
-  try { batchText.focus(); batchText.selectionStart = batchText.selectionEnd = batchText.value.length; }catch(err){}
-});
-
-batchText.addEventListener('click', function(e){
-  e.stopPropagation();
-  try { batchText.focus(); }catch(err){}
-});
-
-// also allow touching the modal area to focus the textarea (useful if user taps modal frame)
-const modalElement = modalBack.querySelector('.modal');
-if(modalElement){
-  modalElement.addEventListener('touchstart', function(e){
-    // if target is not a form control, focus the textarea to help keyboard appear
-    const t = e.target;
-    if(t && (t.tagName !== 'TEXTAREA' && t.tagName !== 'INPUT' && t.tagName !== 'BUTTON')){
-      setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 0);
-    }
-  }, {passive:true});
-}
-
-// Paste handler: allow default paste and refocus
-batchText.addEventListener('paste', (e)=>{
-  setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10);
-});
+batchText.addEventListener('touchstart', function(e){ e.stopPropagation(); setTimeout(()=>{ try{ batchText.focus(); batchText.selectionStart = batchText.selectionEnd = batchText.value.length; }catch(err){} }, 0); }, {passive:true});
+batchText.addEventListener('mousedown', function(e){ e.stopPropagation(); try { batchText.focus(); batchText.selectionStart = batchText.selectionEnd = batchText.value.length; }catch(err){} });
+batchText.addEventListener('click', function(e){ e.stopPropagation(); try { batchText.focus(); }catch(err){} });
+batchText.addEventListener('paste', (e)=>{ setTimeout(()=>{ try{ batchText.focus(); }catch(e){} }, 10); });
 
 document.getElementById('parseBtn').addEventListener('click', ()=>{
   const raw = batchText.value.replace(/\r/g,'').trim();
@@ -475,7 +446,6 @@ function renderList(){
       batchText.disabled = false;
       batchText.tabIndex = 0;
     }
-    // attach a passive touchstart to modalBack to improve iOS touch responsiveness
     modalBack.addEventListener('touchstart', function(){}, {passive:true});
   }catch(e){}
 })();
